@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Licensed Materials - Property of IBM
+	5725-I43 (C) Copyright IBM Corp. 2011, 2016. All Rights Reserved.
+	US Government Users Restricted Rights - Use, duplication or
+	disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+-->
+<mfp:adapter name="WorkReportSQL"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:mfp="http://www.ibm.com/mfp/integration"
+	xmlns:http="http://www.ibm.com/mfp/integration/http">
+
+	<displayName>WorkReportSQL</displayName>
+	<description>WorkReportSQL</description>
+
+	<JAXRSApplicationClass>kr.co.enterprise1.workreportsql.WorkReportSQLApplication</JAXRSApplicationClass>
+
+	<property name="DB_url" displayName="Database URL" defaultValue="jdbc:oracle:thin:@192.168.1.75:1521:morcl"  />
+	<property name="DB_username" displayName="Database username" defaultValue="mobile"  />
+	<property name="DB_password" displayName="Database password" defaultValue="mobile"  />
+</mfp:adapter>
