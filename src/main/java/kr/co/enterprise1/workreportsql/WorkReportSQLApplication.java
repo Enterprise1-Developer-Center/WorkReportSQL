@@ -38,7 +38,7 @@ public class WorkReportSQLApplication extends MFPJAXRSApplication {
     protected void destroy() throws Exception {
         logger.info("Adapter destroyed!");
     }
-
+    //test
     @Override
     protected String getPackageToScan() {
         //The package of this class will be scanned (recursively) to find JAX-RS resources.
