@@ -32,7 +32,7 @@ import com.ibm.mfp.adapter.api.ConfigurationAPI;
 import com.ibm.mfp.adapter.api.OAuthSecurity;
 
 
-@Path("resource/")
+@Path("/")
 public class WorkReportSQLResource {
     /*
      * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
