@@ -216,13 +216,15 @@ public class WorkReportSQLResource {
 
 
 	@GET
+    @Produces("application/json")
 	@Path("/login/{userId}/{userPw}")
 	public Response checkLogin(@PathParam("userId") String userId,
 							   @PathParam("userPw") String userPw
+
 	) throws SQLException {
 		logger.info("userId = " + userId + ", userPw = " + userPw);
 		Connection con = getSQLConnection();
-		String query = "SELECT COUNT(*) USER_INFO WHERE USER_ID=? AND USER_PW=?";
+		String query = "SELECT COUNT(*) from USER_INFO WHERE USER_ID=? AND USER_PW=?";
 		PreparedStatement checkLogin = con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
 		try {
@@ -232,21 +234,25 @@ public class WorkReportSQLResource {
 
 			ResultSet data = checkLogin.executeQuery();
 			if(data.first()){
-				if(data.getInt(0)==1){
+				if(data.getInt(1)==1){
 
 					result.put("ok",1);
-					return Response.ok().build();
+					return Response.ok(result).build();
 				}else{
 					result.put("ok",0);
-					return Response.ok().build();
+					return Response.ok(result).build();
 				}
 			}else{
 				return Response.status(Status.NOT_FOUND).entity("error...").build();
 			}
 
-		} catch (SQLIntegrityConstraintViolationException violation) {
-			//Trying to create a user that already exists
-			return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
+		} catch (Exception e) {
+            logger.info(e.getMessage());
+            logger.log(Level.INFO, e.getMessage(), e);
+            e.printStackTrace();
+            checkLogin.close();
+            con.close();
+            return Response.status(Status.NOT_FOUND).entity("User not found...").build();
 		} finally {
 			//Close resources in all cases
 			checkLogin.close();
