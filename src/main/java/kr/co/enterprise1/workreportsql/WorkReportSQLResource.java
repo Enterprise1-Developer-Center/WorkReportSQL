@@ -214,4 +214,44 @@ public class WorkReportSQLResource {
 
 	}
 
+
+	@POST
+	public Response checkLogin(@FormParam("userId") String userId,
+							   @FormParam("userPw") String userPw
+	) throws SQLException {
+		logger.info("userId = " + userId + ", userPw = " + userPw);
+		Connection con = getSQLConnection();
+		String query = "SELECT COUNT(*) USER_INFO WHERE USER_ID=? AND USER_PW=?";
+		PreparedStatement checkLogin = con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+		try {
+			JSONObject result = new JSONObject();
+			checkLogin.setString(1, userId);
+			checkLogin.setString(2, userPw);
+
+			ResultSet data = checkLogin.executeQuery();
+			if(data.first()){
+				if(data.getInt(0)==1){
+
+					result.put("ok",1);
+					return Response.ok().build();
+				}else{
+					result.put("ok",0);
+					return Response.ok().build();
+				}
+			}else{
+				return Response.status(Status.NOT_FOUND).entity("error...").build();
+			}
+
+		} catch (SQLIntegrityConstraintViolationException violation) {
+			//Trying to create a user that already exists
+			return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
+		} finally {
+			//Close resources in all cases
+			checkLogin.close();
+			con.close();
+		}
+
+	}
+
 }
