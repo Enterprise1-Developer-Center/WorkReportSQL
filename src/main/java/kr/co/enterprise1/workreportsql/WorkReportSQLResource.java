@@ -215,9 +215,10 @@ public class WorkReportSQLResource {
 	}
 
 
-	@POST
-	public Response checkLogin(@FormParam("userId") String userId,
-							   @FormParam("userPw") String userPw
+	@GET
+	@Path("/login/{userId}/{userPw}")
+	public Response checkLogin(@PathParam("userId") String userId,
+							   @PathParam("userPw") String userPw
 	) throws SQLException {
 		logger.info("userId = " + userId + ", userPw = " + userPw);
 		Connection con = getSQLConnection();
