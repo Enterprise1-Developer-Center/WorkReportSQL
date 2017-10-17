@@ -31,234 +31,267 @@ import javax.ws.rs.core.Response.Status;
 import com.ibm.mfp.adapter.api.ConfigurationAPI;
 import com.ibm.mfp.adapter.api.OAuthSecurity;
 
-
 @Path("/")
 public class WorkReportSQLResource {
     /*
      * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
 	 */
 
-	static Logger logger = Logger.getLogger(WorkReportSQLApplication.class.getName());
+  static Logger logger = Logger.getLogger(WorkReportSQLApplication.class.getName());
 
-	@Context
-	ConfigurationAPI configurationAPI;
+  @Context
+  ConfigurationAPI configurationAPI;
 
-	@Context
-	AdaptersAPI adaptersAPI;
+  @Context
+  AdaptersAPI adaptersAPI;
 
-	public Connection getSQLConnection() throws SQLException {
-		// Create a connection object to the database
-		WorkReportSQLApplication app = adaptersAPI.getJaxRsApplication(WorkReportSQLApplication.class);
-		return app.dataSource.getConnection();
-	}
+  public Connection getSQLConnection() throws SQLException {
+    // Create a connection object to the database
+    WorkReportSQLApplication app = adaptersAPI.getJaxRsApplication(WorkReportSQLApplication.class);
+    return app.dataSource.getConnection();
+  }
 
+  @POST
+  public Response createUser(@FormParam("userId") String userId,
+      @FormParam("userPw") String userPw
+  ) throws SQLException {
+    logger.info("userId = " + userId + ", userPw = " + userPw);
+    Connection con = getSQLConnection();
+    PreparedStatement insertUser =
+        con.prepareStatement("INSERT INTO USER_INFO (USER_ID, USER_PW) VALUES (?,?)");
 
-	@POST
-	public Response createUser(@FormParam("userId") String userId,
-							   @FormParam("userPw") String userPw
-	) throws SQLException {
-		logger.info("userId = " + userId + ", userPw = " + userPw);
-		Connection con = getSQLConnection();
-		PreparedStatement insertUser = con.prepareStatement("INSERT INTO USER_INFO (USER_ID, USER_PW) VALUES (?,?)");
+    try {
+      insertUser.setString(1, userId);
+      insertUser.setString(2, userPw);
+      //            insertUser.setString(3, lastName);
+      //            insertUser.setString(4, password);
+      insertUser.executeUpdate();
+      //Return a 200 OK
+      return Response.ok().build();
+    } catch (SQLIntegrityConstraintViolationException violation) {
+      //Trying to create a user that already exists
+      return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
+    } finally {
+      //Close resources in all cases
+      insertUser.close();
+      con.close();
+    }
+  }
 
-		try {
-			insertUser.setString(1, userId);
-			insertUser.setString(2, userPw);
-//            insertUser.setString(3, lastName);
-//            insertUser.setString(4, password);
-			insertUser.executeUpdate();
-			//Return a 200 OK
-			return Response.ok().build();
-		} catch (SQLIntegrityConstraintViolationException violation) {
-			//Trying to create a user that already exists
-			return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
-		} finally {
-			//Close resources in all cases
-			insertUser.close();
-			con.close();
-		}
+  @GET
+  @Produces("application/json")
+  @Path("/{userId}")
+  public Response getUser(@PathParam("userId") String userId) throws SQLException {
+    logger.info("userId = " + userId);
+    Connection con = getSQLConnection();
+    String query = "SELECT * FROM USER_INFO WHERE USER_ID = ?";
+    //PreparedStatement getUser = con.prepareStatement(query);
+    PreparedStatement getUser =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-	}
+    try {
+      JSONObject result = new JSONObject();
 
-	@GET
-	@Produces("application/json")
-	@Path("/{userId}")
-	public Response getUser(@PathParam("userId") String userId) throws SQLException {
-		logger.info("userId = " + userId);
-		Connection con = getSQLConnection();
-		String query = "SELECT * FROM USER_INFO WHERE USER_ID = ?";
-		//PreparedStatement getUser = con.prepareStatement(query);
-		PreparedStatement getUser = con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+      getUser.setString(1, userId);
+      ResultSet data = getUser.executeQuery();
 
-		try {
-			JSONObject result = new JSONObject();
-
-			getUser.setString(1, userId);
-			ResultSet data = getUser.executeQuery();
-
-			if (data.first()) {
-				String value = data.getString("USER_ID");
-				result.put("userId", value);
+      if (data.first()) {
+        String value = data.getString("USER_ID");
+        result.put("userId", value);
 /*
                 result.put("firstName", data.getString("firstName"));
                 result.put("lastName", data.getString("lastName"));
                 result.put("password", data.getString("password"));
 */
-				return Response.ok(result).build();
+        return Response.ok(result).build();
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      }
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      getUser.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+    } finally {
+      //Close resources in all cases
+      getUser.close();
+      con.close();
+      logger.info("getUser.close(), con.close()");
+    }
+  }
 
-			} else {
-				return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-			}
-		} catch (Exception e) {
-			logger.info(e.getMessage());
-			logger.log(Level.INFO, e.getMessage(), e);
-			e.printStackTrace();
-			getUser.close();
-			con.close();
-			return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-		} finally {
-			//Close resources in all cases
-			getUser.close();
-			con.close();
-			logger.info("getUser.close(), con.close()");
-		}
-	}
+  @GET
+  @Produces("application/json")
+  public Response getAllUsers() throws SQLException {
+    JSONArray results = new JSONArray();
+    Connection con = getSQLConnection();
+    PreparedStatement getAllUsers = con.prepareStatement("SELECT * FROM users");
+    ResultSet data = getAllUsers.executeQuery();
 
-	@GET
-	@Produces("application/json")
-	public Response getAllUsers() throws SQLException {
-		JSONArray results = new JSONArray();
-		Connection con = getSQLConnection();
-		PreparedStatement getAllUsers = con.prepareStatement("SELECT * FROM users");
-		ResultSet data = getAllUsers.executeQuery();
+    while (data.next()) {
+      JSONObject item = new JSONObject();
+      item.put("userId", data.getString("userId"));
+      item.put("firstName", data.getString("firstName"));
+      item.put("lastName", data.getString("lastName"));
+      item.put("password", data.getString("password"));
 
-		while (data.next()) {
-			JSONObject item = new JSONObject();
-			item.put("userId", data.getString("userId"));
-			item.put("firstName", data.getString("firstName"));
-			item.put("lastName", data.getString("lastName"));
-			item.put("password", data.getString("password"));
+      results.add(item);
+    }
 
-			results.add(item);
-		}
+    getAllUsers.close();
+    con.close();
 
-		getAllUsers.close();
-		con.close();
+    return Response.ok(results).build();
+  }
 
-		return Response.ok(results).build();
-	}
+  @PUT
+  @Path("/{userId}")
+  public Response updateUser(@PathParam("userId") String userId,
+      @FormParam("firstName") String firstName,
+      @FormParam("lastName") String lastName,
+      @FormParam("password") String password)
+      throws SQLException {
+    Connection con = getSQLConnection();
+    PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
 
-	@PUT
-	@Path("/{userId}")
-	public Response updateUser(@PathParam("userId") String userId,
-							   @FormParam("firstName") String firstName,
-							   @FormParam("lastName") String lastName,
-							   @FormParam("password") String password)
-			throws SQLException {
-		Connection con = getSQLConnection();
-		PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
+    try {
+      getUser.setString(1, userId);
+      ResultSet data = getUser.executeQuery();
 
-		try {
-			getUser.setString(1, userId);
-			ResultSet data = getUser.executeQuery();
+      if (data.first()) {
+        PreparedStatement updateUser = con.prepareStatement(
+            "UPDATE users SET firstName = ?, lastName = ?, password = ? WHERE userId = ?");
 
-			if (data.first()) {
-				PreparedStatement updateUser = con.prepareStatement("UPDATE users SET firstName = ?, lastName = ?, password = ? WHERE userId = ?");
+        updateUser.setString(1, firstName);
+        updateUser.setString(2, lastName);
+        updateUser.setString(3, password);
+        updateUser.setString(4, userId);
 
-				updateUser.setString(1, firstName);
-				updateUser.setString(2, lastName);
-				updateUser.setString(3, password);
-				updateUser.setString(4, userId);
+        updateUser.executeUpdate();
+        updateUser.close();
+        return Response.ok().build();
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      }
+    } finally {
+      //Close resources in all cases
+      getUser.close();
+      con.close();
+    }
+  }
 
-				updateUser.executeUpdate();
-				updateUser.close();
-				return Response.ok().build();
+  @DELETE
+  @Path("/{userId}")
+  public Response deleteUser(@PathParam("userId") String userId) throws SQLException {
+    Connection con = getSQLConnection();
+    PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
+
+    try {
+      getUser.setString(1, userId);
+      ResultSet data = getUser.executeQuery();
+
+      if (data.first()) {
+        PreparedStatement deleteUser = con.prepareStatement("DELETE FROM users WHERE userId = ?");
+        deleteUser.setString(1, userId);
+        deleteUser.executeUpdate();
+        deleteUser.close();
+        return Response.ok().build();
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      }
+    } finally {
+      //Close resources in all cases
+      getUser.close();
+      con.close();
+    }
+  }
+
+  //로그인
+  @GET
+  @Produces("application/json")
+  @Path("/login/{userId}/{userPw}")
+  public Response checkLogin(@PathParam("userId") String userId,
+      @PathParam("userPw") String userPw
+
+  ) throws SQLException {
+    logger.info("userId = " + userId + ", userPw = " + userPw);
+    Connection con = getSQLConnection();
+    String query = "SELECT COUNT(*) from USER_INFO WHERE USER_ID=? AND USER_PW=?";
+    PreparedStatement checkLogin =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    try {
+      JSONObject result = new JSONObject();
+      checkLogin.setString(1, userId);
+      checkLogin.setString(2, userPw);
+
+      ResultSet data = checkLogin.executeQuery();
+
+      if (data.first()) {
+        if (data.getInt(1) == 1) {
+
+          result.put("ok", 1);
+          return Response.ok(result).build();
+        } else {
+          result.put("ok", 0);
+          return Response.ok(result).build();
+        }
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("error...").build();
+      }
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      checkLogin.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+    } finally {
+      //Close resources in all cases
+      checkLogin.close();
+      con.close();
+    }
+  }
 
 
-			} else {
-				return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-			}
-		} finally {
-			//Close resources in all cases
-			getUser.close();
-			con.close();
-		}
 
-	}
+  //구분코드 가져오기
+  @GET
+  @Produces("application/json")
+  @Path("/getCode")
+  public Response getCode() throws SQLException {
+    JSONArray results = new JSONArray();
+    Connection con = getSQLConnection();
+    String query = "SELECT L.LCLS_NM, L.LCLS_CD, M.MCLS_NM, M.MCLS_CD FROM WORK_MCLASS M, WORK_LCLASS L WHERE M.LCLS_CD=L.LCLS_CD";
+    PreparedStatement checkLogin =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-	@DELETE
-	@Path("/{userId}")
-	public Response deleteUser(@PathParam("userId") String userId) throws SQLException {
-		Connection con = getSQLConnection();
-		PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
+    try {
+      ResultSet data = checkLogin.executeQuery();
+      while (data.next()) {
+        JSONObject item = new JSONObject();
+        item.put("LCLS_NM", data.getString(1));
+        item.put("LCLS_CD", data.getInt(2));
+        item.put("MCLS_NM", data.getString(3));
+        item.put("MCLS_CD", data.getInt(4));
+        results.add(item);
+      }
 
-		try {
-			getUser.setString(1, userId);
-			ResultSet data = getUser.executeQuery();
+      return Response.ok(results).build();
 
-			if (data.first()) {
-				PreparedStatement deleteUser = con.prepareStatement("DELETE FROM users WHERE userId = ?");
-				deleteUser.setString(1, userId);
-				deleteUser.executeUpdate();
-				deleteUser.close();
-				return Response.ok().build();
-
-			} else {
-				return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-			}
-		} finally {
-			//Close resources in all cases
-			getUser.close();
-			con.close();
-		}
-
-	}
-
-
-	@GET
-    @Produces("application/json")
-	@Path("/login/{userId}/{userPw}")
-	public Response checkLogin(@PathParam("userId") String userId,
-							   @PathParam("userPw") String userPw
-
-	) throws SQLException {
-		logger.info("userId = " + userId + ", userPw = " + userPw);
-		Connection con = getSQLConnection();
-		String query = "SELECT COUNT(*) from USER_INFO WHERE USER_ID=? AND USER_PW=?";
-		PreparedStatement checkLogin = con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
-		try {
-			JSONObject result = new JSONObject();
-			checkLogin.setString(1, userId);
-			checkLogin.setString(2, userPw);
-
-			ResultSet data = checkLogin.executeQuery();
-			if(data.first()){
-				if(data.getInt(1)==1){
-
-					result.put("ok",1);
-					return Response.ok(result).build();
-				}else{
-					result.put("ok",0);
-					return Response.ok(result).build();
-				}
-			}else{
-				return Response.status(Status.NOT_FOUND).entity("error...").build();
-			}
-
-		} catch (Exception e) {
-            logger.info(e.getMessage());
-            logger.log(Level.INFO, e.getMessage(), e);
-            e.printStackTrace();
-            checkLogin.close();
-            con.close();
-            return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-		} finally {
-			//Close resources in all cases
-			checkLogin.close();
-			con.close();
-		}
-
-	}
-
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      checkLogin.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+    } finally {
+      //Close resources in all cases
+      checkLogin.close();
+      con.close();
+    }
+  }
 }
