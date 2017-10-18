@@ -311,8 +311,8 @@ public class WorkReportSQLResource {
       ResultSet data = checkLogin.executeQuery();
       while (data.next()) {
         JSONObject item = new JSONObject();
-        item.put("PROJ_CD", data.getString(1));
-        item.put("PROJ_NM", data.getInt(2));
+        item.put("PROJ_CD", data.getInt(1));
+        item.put("PROJ_NM", data.getString(2));
 
         results.add(item);
       }
