@@ -294,4 +294,43 @@ public class WorkReportSQLResource {
       con.close();
     }
   }
+
+
+  //프로젝트 정보 가져오기
+  @GET
+  @Produces("application/json")
+  @Path("/getProjects")
+  public Response getProjects() throws SQLException {
+    JSONArray results = new JSONArray();
+    Connection con = getSQLConnection();
+    String query = "SELECT PROJ_CD, PROJ_NM FROM PROJ_INFO";
+    PreparedStatement checkLogin =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    try {
+      ResultSet data = checkLogin.executeQuery();
+      while (data.next()) {
+        JSONObject item = new JSONObject();
+        item.put("PROJ_CD", data.getString(1));
+        item.put("PROJ_NM", data.getInt(2));
+
+        results.add(item);
+      }
+
+      return Response.ok(results).build();
+
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      checkLogin.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+    } finally {
+      //Close resources in all cases
+      checkLogin.close();
+      con.close();
+    }
+  }
+
 }
