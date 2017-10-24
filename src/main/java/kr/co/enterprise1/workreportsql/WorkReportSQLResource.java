@@ -68,7 +68,7 @@ public class WorkReportSQLResource {
       insertUser.executeUpdate();
       //Return a 200 OK
       return Response.ok().build();
-    } catch (SQLIntegrityConstraintViolationException violation) {
+    } catch (Exception violation) {
       //Trying to create a user that already exists
       return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
     } finally {
@@ -329,6 +329,75 @@ public class WorkReportSQLResource {
     } finally {
       //Close resources in all cases
       checkLogin.close();
+      con.close();
+    }
+  }
+
+
+  //워킹데이 정보 가져오기
+  @GET
+  @Produces("application/json")
+  @Path("/getWorkingDay")
+  public Response getWorkingDay(@QueryParam("userId") String userId,
+      @QueryParam("date") String date
+      ) throws SQLException {
+
+    Connection con = getSQLConnection();
+    String query = "SELECT USER_ID, "
+        + "USER_NM,"
+        + "DEPT_NM,"
+        + "to_char( WORK_YMD, 'YYYY-MM-DD')  WORK_YMD, "
+        + "MCLS_CD,"
+        + "DETAIL, "
+        + "PROJ_INFO.PROJ_NM PROJ_NM, "
+        + "to_char(S_TIME, 'hh24:mi') S_TIME, "
+        + "to_char(E_TIME, 'hh24:mi') E_TIME, "
+        + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
+        + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
+        + "FROM WORK_DETAIL, PROJ_INFO  "
+        + "WHERE WORK_DETAIL.PRJ_CD = PROJ_INFO.PROJ_CD "
+        + "and USER_ID =? and to_char(WORK_YMD,'yyyy-mm-dd') = ?";
+    PreparedStatement getWorkingDay =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    try {
+      getWorkingDay.setString(1, userId);
+      getWorkingDay.setString(2, date);
+
+      ResultSet data = getWorkingDay.executeQuery();
+      JSONObject item = new JSONObject();
+      JSONObject MCLS = new JSONObject();
+      if (data.first()) {
+
+
+        item.put("WORK_YMD", data.getString("WORK_YMD"));
+        item.put("DEPT_NM", data.getString("DEPT_NM"));
+        item.put("USER_ID", data.getString("USER_ID"));
+        item.put("USER_NM", data.getString("USER_NM"));
+        item.put("PROJ_NM", data.getString("PROJ_NM"));
+
+        MCLS.put("MCLS_CD", data.getString("MCLS_CD"));
+        MCLS.put("DETAIL", data.getString("DETAIL"));
+        item.put("MCLS",MCLS);
+
+        item.put("S_TIME", data.getString("S_TIME"));
+        item.put("E_TIME", data.getString("E_TIME"));
+        item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
+        item.put("UPD_TIME", data.getString("UPD_TIME"));
+        return Response.ok(item).build();
+      }else{
+        return Response.status(Status.NOT_FOUND).entity("error...").build();
+      }
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      getWorkingDay.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+    } finally {
+      //Close resources in all cases
+      getWorkingDay.close();
       con.close();
     }
   }
