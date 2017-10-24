@@ -19,7 +19,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
 		<!-- MobileFirst adapter deployment properties -->
-		<mfpfUrl>http://192.168.1.112:9080/mfpadmin</mfpfUrl><!--http://211.219.71.228:9080/mfpadmin-->
+		<mfpfUrl>http://192.168.1.99:9080/mfpadmin</mfpfUrl><!--http://211.219.71.228:9080/mfpadmin-->
 		<mfpfUser>admin</mfpfUser>
 		<mfpfPassword>admin</mfpfPassword>
 		<mfpfRuntime>mfp</mfpfRuntime>
