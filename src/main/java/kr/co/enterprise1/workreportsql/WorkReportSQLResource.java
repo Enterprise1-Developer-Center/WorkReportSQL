@@ -35,7 +35,7 @@ import com.ibm.mfp.adapter.api.OAuthSecurity;
 public class WorkReportSQLResource {
     /*
      * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
-	 */
+  */
 
   static Logger logger = Logger.getLogger(WorkReportSQLApplication.class.getName());
 
@@ -340,7 +340,7 @@ public class WorkReportSQLResource {
   @Path("/getWorkingDay")
   public Response getWorkingDay(@QueryParam("userId") String userId,
       @QueryParam("date") String date
-      ) throws SQLException {
+  ) throws SQLException {
 
     Connection con = getSQLConnection();
     String query = "SELECT USER_ID, "
@@ -349,9 +349,10 @@ public class WorkReportSQLResource {
         + "to_char( WORK_YMD, 'YYYY-MM-DD')  WORK_YMD, "
         + "MCLS_CD,"
         + "DETAIL, "
+        + "PROJ_CD,"
         + "PROJ_INFO.PROJ_NM PROJ_NM, "
-        + "to_char(S_TIME, 'hh24:mi') S_TIME, "
-        + "to_char(E_TIME, 'hh24:mi') E_TIME, "
+        + "to_char(S_TIME, 'yyyy-mm-dd hh24:mi') S_TIME, "
+        + "to_char(E_TIME, 'yyyy-mm-dd hh24:mi') E_TIME, "
         + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
         + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
         + "FROM WORK_DETAIL, PROJ_INFO  "
@@ -367,6 +368,8 @@ public class WorkReportSQLResource {
       ResultSet data = getWorkingDay.executeQuery();
       JSONObject item = new JSONObject();
       JSONObject MCLS = new JSONObject();
+      JSONObject PROJ = new JSONObject();
+
       if (data.first()) {
 
 
@@ -374,7 +377,10 @@ public class WorkReportSQLResource {
         item.put("DEPT_NM", data.getString("DEPT_NM"));
         item.put("USER_ID", data.getString("USER_ID"));
         item.put("USER_NM", data.getString("USER_NM"));
-        item.put("PROJ_NM", data.getString("PROJ_NM"));
+
+        PROJ.put("PROJ_CD", data.getString("PROJ_CD"));
+        PROJ.put("PROJ_NM", data.getString("PROJ_NM"));
+        item.put("PROJ",PROJ);
 
         MCLS.put("MCLS_CD", data.getString("MCLS_CD"));
         MCLS.put("DETAIL", data.getString("DETAIL"));
@@ -401,5 +407,141 @@ public class WorkReportSQLResource {
       con.close();
     }
   }
+
+
+
+  //워킹데이 수정
+  @POST
+  @Produces("application/json")
+  @Path("/updateWorkingDay")
+  public Response updateWorkingDay(@FormParam("LCLS_CD") String LCLS_CD, @FormParam("MCLS_CD") String MCLS_CD, @FormParam("DETAIL") String DETAIL,
+      @FormParam("PRJ_CD") String PRJ_CD, @FormParam("S_TIME") String S_TIME, @FormParam("E_TIME") String E_TIME, @FormParam("UPD_TIME") String UPD_TIME,
+      @FormParam("USER_ID") String USER_ID, @FormParam("date") String date
+  ) throws SQLException {
+
+    Connection con = getSQLConnection();
+    String query = "update WORK_DETAIL SET "
+        + "LCLS_CD=?,"
+        + "MCLS_CD=?,"
+        + "DETAIL=?,"
+        + "PRJ_CD=?,"
+        + "S_TIME=to_date(?,'yyyy-mm-dd HH24:MI'),"
+        + "E_TIME=to_date(?,'yyyy-mm-dd HH24:MI'),"
+        + "EXTRA_TIME = "
+        + "(select to_date(SUBSTR(diff, 12, 5),'HH24:MI') "
+        + "from "
+        + "(select NUMTODSINTERVAL (to_date(?,'yyyy-mm-dd HH24:MI') - to_date(?,'yyyy-mm-dd HH24:MI'), 'DAY') diff from WORK_DETAIL where USER_ID=? and to_char(WORK_YMD,'yyyy-mm-dd') = ?)),"
+        + "UPD_TIME=to_date(?,'yyyy-mm-dd HH24:MI')"
+        + "where USER_ID=? and to_char(WORK_YMD,'yyyy-mm-dd') = ?";
+
+    //1:대구분 코드, 2:구분 코드, 3:상세내용, 4:프로젝트코드, 5:초과근무 시작시간, 6:초과근무 종료시간, 7:초과근무 종료시간, 8:초과근무 시작시간, 9:유저ID, 10:조회 날짜
+    //11:수정시간, 12:유저ID, 13:조회날짜
+
+    PreparedStatement updateWorkingDay =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    try {
+      updateWorkingDay.setString(1, LCLS_CD);
+      updateWorkingDay.setString(2, MCLS_CD);
+      updateWorkingDay.setString(3, DETAIL);
+      updateWorkingDay.setString(4, PRJ_CD);
+      updateWorkingDay.setString(5, S_TIME);
+      updateWorkingDay.setString(6, E_TIME);
+      updateWorkingDay.setString(7, E_TIME);
+      updateWorkingDay.setString(8, S_TIME);
+      updateWorkingDay.setString(9, USER_ID);
+      updateWorkingDay.setString(10, date);
+      updateWorkingDay.setString(11, UPD_TIME);
+      updateWorkingDay.setString(12, USER_ID);
+      updateWorkingDay.setString(13, date);
+
+      int cnt = updateWorkingDay.executeUpdate();
+
+      if(cnt>0){
+        //업데이트 성공
+        String query1 = "SELECT USER_ID, "
+            + "USER_NM,"
+            + "DEPT_NM,"
+            + "to_char( WORK_YMD, 'YYYY-MM-DD')  WORK_YMD, "
+            + "MCLS_CD,"
+            + "DETAIL, "
+            + "PROJ_CD,"
+            + "PROJ_INFO.PROJ_NM PROJ_NM, "
+            + "to_char(S_TIME, 'yyyy-mm-dd hh24:mi') S_TIME, "
+            + "to_char(E_TIME, 'yyyy-mm-dd hh24:mi') E_TIME, "
+            + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
+            + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
+            + "FROM WORK_DETAIL, PROJ_INFO  "
+            + "WHERE WORK_DETAIL.PRJ_CD = PROJ_INFO.PROJ_CD "
+            + "and USER_ID =? and to_char(WORK_YMD,'yyyy-mm-dd') = ?";
+        PreparedStatement getWorkingDay =
+            con.prepareStatement(query1, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+        try {
+          getWorkingDay.setString(1, USER_ID);
+          getWorkingDay.setString(2, date);
+
+          ResultSet data = getWorkingDay.executeQuery();
+          JSONObject item = new JSONObject();
+          JSONObject MCLS = new JSONObject();
+          JSONObject PROJ = new JSONObject();
+
+          if (data.first()) {
+
+
+            item.put("WORK_YMD", data.getString("WORK_YMD"));
+            item.put("DEPT_NM", data.getString("DEPT_NM"));
+            item.put("USER_ID", data.getString("USER_ID"));
+            item.put("USER_NM", data.getString("USER_NM"));
+
+            PROJ.put("PROJ_CD", data.getString("PROJ_CD"));
+            PROJ.put("PROJ_NM", data.getString("PROJ_NM"));
+            item.put("PROJ",PROJ);
+
+            MCLS.put("MCLS_CD", data.getString("MCLS_CD"));
+            MCLS.put("DETAIL", data.getString("DETAIL"));
+            item.put("MCLS",MCLS);
+
+            item.put("S_TIME", data.getString("S_TIME"));
+            item.put("E_TIME", data.getString("E_TIME"));
+            item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
+            item.put("UPD_TIME", data.getString("UPD_TIME"));
+            return Response.ok(item).build();
+          }else{
+            return Response.status(Status.NOT_FOUND).entity("error...").build();
+          }
+        } catch (Exception e) {
+          logger.info(e.getMessage());
+          logger.log(Level.INFO, e.getMessage(), e);
+          e.printStackTrace();
+          getWorkingDay.close();
+          con.close();
+          return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+        } finally {
+          //Close resources in all cases
+          getWorkingDay.close();
+        }
+      }else{
+        //변경 내역이 없음
+
+      }
+
+      //Return a 200 OK
+      return Response.ok().build();
+    } catch (Exception e) {
+      //Trying to create a user that already exists
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      updateWorkingDay.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+    } finally {
+      //Close resources in all cases
+      updateWorkingDay.close();
+      con.close();
+    }
+  }
+
 
 }
