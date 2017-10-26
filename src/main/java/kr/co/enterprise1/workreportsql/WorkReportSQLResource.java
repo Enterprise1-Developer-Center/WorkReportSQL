@@ -544,4 +544,60 @@ public class WorkReportSQLResource {
   }
 
 
+  //비밀번호 수정
+  @POST
+  @Produces("application/json")
+  @Path("/changePwd")
+  public Response changePwd(@FormParam("userId") String userId, @FormParam("curPwd") String curPwd,
+      @FormParam("newPwd") String newPwd, @FormParam("newPwdConfirm") String newPwdConfirm ) throws SQLException {
+    JSONObject res = new JSONObject();
+    Connection con = getSQLConnection();
+    String query = "update USER_INFO set USER_PW=? where user_id=? and user_pw=?";
+
+
+    PreparedStatement changePwd =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    try {
+
+
+      if(!newPwd.equals(newPwdConfirm)){
+        res.put("result","새로운 비밀번호를 다시한번 확인해주세요.");
+        return Response.ok(res).build();
+      }
+
+      changePwd.setString(1, newPwd);
+      changePwd.setString(2, userId);
+      changePwd.setString(3, curPwd);
+
+      int cnt = changePwd.executeUpdate();
+
+      if(cnt>0){
+        //업데이트 성공
+        res.put("result","비밀번호가 변경되었습니다.");
+        return Response.ok(res).build();
+      }else{
+        //변경 내역이 없음 => 현재비밀번호 틀림
+        res.put("result","현재비밀번호가 틀렸습니다.");
+        return Response.ok(res).build();
+      }
+
+    } catch (Exception e) {
+      //Trying to create a user that already exists
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      changePwd.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+    } finally {
+      //Close resources in all cases
+      changePwd.close();
+      con.close();
+    }
+  }
+
+
+
+
 }
