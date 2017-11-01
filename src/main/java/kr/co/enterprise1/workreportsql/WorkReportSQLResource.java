@@ -255,8 +255,6 @@ public class WorkReportSQLResource {
     }
   }
 
-
-
   //구분코드 가져오기
   @GET
   @Produces("application/json")
@@ -264,7 +262,8 @@ public class WorkReportSQLResource {
   public Response getCode() throws SQLException {
     JSONArray results = new JSONArray();
     Connection con = getSQLConnection();
-    String query = "SELECT L.LCLS_NM, L.LCLS_CD, M.MCLS_NM, M.MCLS_CD FROM WORK_MCLASS M, WORK_LCLASS L WHERE M.LCLS_CD=L.LCLS_CD";
+    String query =
+        "SELECT L.LCLS_NM, L.LCLS_CD, M.MCLS_NM, M.MCLS_CD FROM WORK_MCLASS M, WORK_LCLASS L WHERE M.LCLS_CD=L.LCLS_CD";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -280,7 +279,6 @@ public class WorkReportSQLResource {
       }
 
       return Response.ok(results).build();
-
     } catch (Exception e) {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
@@ -294,7 +292,6 @@ public class WorkReportSQLResource {
       con.close();
     }
   }
-
 
   //프로젝트 정보 가져오기
   @GET
@@ -318,7 +315,6 @@ public class WorkReportSQLResource {
       }
 
       return Response.ok(results).build();
-
     } catch (Exception e) {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
@@ -332,7 +328,6 @@ public class WorkReportSQLResource {
       con.close();
     }
   }
-
 
   //워킹데이 정보 가져오기
   @GET
@@ -372,7 +367,6 @@ public class WorkReportSQLResource {
 
       if (data.first()) {
 
-
         item.put("WORK_YMD", data.getString("WORK_YMD"));
         item.put("DEPT_NM", data.getString("DEPT_NM"));
         item.put("USER_ID", data.getString("USER_ID"));
@@ -380,18 +374,18 @@ public class WorkReportSQLResource {
 
         PROJ.put("PROJ_CD", data.getString("PROJ_CD"));
         PROJ.put("PROJ_NM", data.getString("PROJ_NM"));
-        item.put("PROJ",PROJ);
+        item.put("PROJ", PROJ);
 
         MCLS.put("MCLS_CD", data.getString("MCLS_CD"));
         MCLS.put("DETAIL", data.getString("DETAIL"));
-        item.put("MCLS",MCLS);
+        item.put("MCLS", MCLS);
 
         item.put("S_TIME", data.getString("S_TIME"));
         item.put("E_TIME", data.getString("E_TIME"));
         item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
         item.put("UPD_TIME", data.getString("UPD_TIME"));
         return Response.ok(item).build();
-      }else{
+      } else {
         return Response.status(Status.NOT_FOUND).entity("error...").build();
       }
     } catch (Exception e) {
@@ -408,14 +402,14 @@ public class WorkReportSQLResource {
     }
   }
 
-
-
   //워킹데이 수정
   @POST
   @Produces("application/json")
   @Path("/updateWorkingDay")
-  public Response updateWorkingDay(@FormParam("LCLS_CD") String LCLS_CD, @FormParam("MCLS_CD") String MCLS_CD, @FormParam("DETAIL") String DETAIL,
-      @FormParam("PRJ_CD") String PRJ_CD, @FormParam("S_TIME") String S_TIME, @FormParam("E_TIME") String E_TIME, @FormParam("UPD_TIME") String UPD_TIME,
+  public Response updateWorkingDay(@FormParam("LCLS_CD") String LCLS_CD,
+      @FormParam("MCLS_CD") String MCLS_CD, @FormParam("DETAIL") String DETAIL,
+      @FormParam("PRJ_CD") String PRJ_CD, @FormParam("S_TIME") String S_TIME,
+      @FormParam("E_TIME") String E_TIME, @FormParam("UPD_TIME") String UPD_TIME,
       @FormParam("USER_ID") String USER_ID, @FormParam("date") String date
   ) throws SQLException {
 
@@ -457,7 +451,7 @@ public class WorkReportSQLResource {
 
       int cnt = updateWorkingDay.executeUpdate();
 
-      if(cnt>0){
+      if (cnt > 0) {
         //업데이트 성공
         String query1 = "SELECT USER_ID, "
             + "USER_NM,"
@@ -475,7 +469,8 @@ public class WorkReportSQLResource {
             + "WHERE WORK_DETAIL.PRJ_CD = PROJ_INFO.PROJ_CD "
             + "and USER_ID =? and to_char(WORK_YMD,'yyyy-mm-dd') = ?";
         PreparedStatement getWorkingDay =
-            con.prepareStatement(query1, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            con.prepareStatement(query1, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
 
         try {
           getWorkingDay.setString(1, USER_ID);
@@ -488,7 +483,6 @@ public class WorkReportSQLResource {
 
           if (data.first()) {
 
-
             item.put("WORK_YMD", data.getString("WORK_YMD"));
             item.put("DEPT_NM", data.getString("DEPT_NM"));
             item.put("USER_ID", data.getString("USER_ID"));
@@ -496,32 +490,30 @@ public class WorkReportSQLResource {
 
             PROJ.put("PROJ_CD", data.getString("PROJ_CD"));
             PROJ.put("PROJ_NM", data.getString("PROJ_NM"));
-            item.put("PROJ",PROJ);
+            item.put("PROJ", PROJ);
 
             MCLS.put("MCLS_CD", data.getString("MCLS_CD"));
             MCLS.put("DETAIL", data.getString("DETAIL"));
-            item.put("MCLS",MCLS);
+            item.put("MCLS", MCLS);
 
             item.put("S_TIME", data.getString("S_TIME"));
             item.put("E_TIME", data.getString("E_TIME"));
             item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
             item.put("UPD_TIME", data.getString("UPD_TIME"));
             return Response.ok(item).build();
-          }else{
+          } else {
             return Response.status(Status.NOT_FOUND).entity("error...").build();
           }
         } catch (Exception e) {
           logger.info(e.getMessage());
           logger.log(Level.INFO, e.getMessage(), e);
           e.printStackTrace();
-          getWorkingDay.close();
-          con.close();
           return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
         } finally {
           //Close resources in all cases
           getWorkingDay.close();
         }
-      }else{
+      } else {
         //변경 내역이 없음
 
       }
@@ -533,8 +525,6 @@ public class WorkReportSQLResource {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
-      updateWorkingDay.close();
-      con.close();
       return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
     } finally {
       //Close resources in all cases
@@ -543,26 +533,24 @@ public class WorkReportSQLResource {
     }
   }
 
-
   //비밀번호 수정
   @POST
   @Produces("application/json")
   @Path("/changePwd")
   public Response changePwd(@FormParam("userId") String userId, @FormParam("curPwd") String curPwd,
-      @FormParam("newPwd") String newPwd, @FormParam("newPwdConfirm") String newPwdConfirm ) throws SQLException {
+      @FormParam("newPwd") String newPwd, @FormParam("newPwdConfirm") String newPwdConfirm)
+      throws SQLException {
     JSONObject res = new JSONObject();
     Connection con = getSQLConnection();
     String query = "update USER_INFO set USER_PW=? where user_id=? and user_pw=?";
-
 
     PreparedStatement changePwd =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     try {
 
-
-      if(!newPwd.equals(newPwdConfirm)){
-        res.put("result","새로운 비밀번호를 다시한번 확인해주세요.");
+      if (!newPwd.equals(newPwdConfirm)) {
+        res.put("result", "비밀번호 확인 불일치.");
         return Response.ok(res).build();
       }
 
@@ -572,23 +560,21 @@ public class WorkReportSQLResource {
 
       int cnt = changePwd.executeUpdate();
 
-      if(cnt>0){
+      if (cnt > 0) {
         //업데이트 성공
-        res.put("result","비밀번호가 변경되었습니다.");
+        res.put("result", "비밀번호가 변경되었습니다.");
         return Response.ok(res).build();
-      }else{
+      } else {
         //변경 내역이 없음 => 현재비밀번호 틀림
-        res.put("result","현재비밀번호가 틀렸습니다.");
+        res.put("result", "현재비밀번호가 틀렸습니다.");
         return Response.ok(res).build();
       }
-
     } catch (Exception e) {
       //Trying to create a user that already exists
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
-      changePwd.close();
-      con.close();
+
       return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
     } finally {
       //Close resources in all cases
@@ -598,6 +584,50 @@ public class WorkReportSQLResource {
   }
 
 
+
+  //워킹데이 요약 정보 가져오기
+  @GET
+  @Produces("application/json")
+  @Path("/getSummary")
+  public Response getSummary() throws SQLException {
+
+    Connection con = getSQLConnection();
+    String query = "select w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd";
+    PreparedStatement getWorkingDay =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    try {
+
+      ResultSet data = getWorkingDay.executeQuery();
+      JSONArray res = new JSONArray();
+
+
+      while(data.next()){
+        JSONObject item = new JSONObject();
+        item.put("NAME",data.getString(1));
+        item.put("PROJ_NM",data.getString(2));
+        item.put("MCLS_CD",data.getString(3));
+        item.put("DETAIL",data.getString(4));
+
+        res.add(item);
+
+      }
+      return Response.ok(res).build();
+
+
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      getWorkingDay.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("data not found...").build();
+    } finally {
+      //Close resources in all cases
+      getWorkingDay.close();
+      con.close();
+    }
+  }
 
 
 }

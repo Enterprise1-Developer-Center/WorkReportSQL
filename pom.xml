@@ -32,11 +32,13 @@
 			<scope>provided</scope>
 			<version>8.0.2017092000</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.ibm.mfp/mfp-security-checks-base -->
 		<dependency>
 			<groupId>com.ibm.mfp</groupId>
 			<artifactId>mfp-security-checks-base</artifactId>
-			<version>[8.0.0,9.0.0)</version>
+			<version>8.0.2017020112</version>
 		</dependency>
+
 		<dependency>
 			<groupId>commons-dbcp</groupId>
 			<artifactId>commons-dbcp</artifactId>
