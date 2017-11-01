@@ -553,6 +553,10 @@ public class WorkReportSQLResource {
         res.put("result", "비밀번호 확인 불일치.");
         return Response.ok(res).build();
       }
+      if (newPwd.equals(curPwd)) {
+        res.put("result", "기존 비밀번호와 동일합니다.");
+        return Response.ok(res).build();
+      }
 
       changePwd.setString(1, newPwd);
       changePwd.setString(2, userId);
@@ -588,16 +592,17 @@ public class WorkReportSQLResource {
   //워킹데이 요약 정보 가져오기
   @GET
   @Produces("application/json")
-  @Path("/getSummary")
-  public Response getSummary() throws SQLException {
+  @Path("/getSummary/{date}")
+  public Response getSummary(@PathParam("date")String date) throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "select w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd";
+    String query = "select w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
+        + "and to_char(work_ymd,'yyyy-mm-dd')=?";
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     try {
-
+      getWorkingDay.setString(1,date);
       ResultSet data = getWorkingDay.executeQuery();
       JSONArray res = new JSONArray();
 
