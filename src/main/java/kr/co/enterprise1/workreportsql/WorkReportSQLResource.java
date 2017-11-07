@@ -208,7 +208,7 @@ public class WorkReportSQLResource {
     }
   }
 
-  //성공:0  / 실패:1
+  //성공:1  / 실패:0
   //msg:""   msg:로그인정보가 잘못되었습니다.
   //로그인
   @GET
@@ -216,34 +216,40 @@ public class WorkReportSQLResource {
   @Path("/login")
   public Response checkLogin(@QueryParam("userId") String userId,
       @QueryParam("userPw") String userPw
-
   ) throws SQLException {
-    logger.info("userId = " + userId + ", userPw = " + userPw);
     Connection con = getSQLConnection();
     String query = "SELECT COUNT(*) from USER_INFO WHERE USER_ID=? AND USER_PW=?";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
+    JSONObject result = new JSONObject();
+
     try {
-      JSONObject result = new JSONObject();
       checkLogin.setString(1, userId);
       checkLogin.setString(2, userPw);
-
       ResultSet data = checkLogin.executeQuery();
 
       if (data.first()) {
+        //로그인 성공
         if (data.getInt(1) == 1) {
 
-          result.put("code", 0);
+          result.put("result", 1);
           result.put("msg","");
+
           return Response.ok(result).build();
-        } else {
-          result.put("code", 1);
+        }
+        //로그인 실패(아이디 비밀번호 틀림 / 공백)
+        else {
+          result.put("result", 0);
           result.put("msg","로그인정보가 잘못되었습니다.");
           return Response.ok(result).build();
         }
-      } else {
-        return Response.status(Status.NOT_FOUND).entity("error...").build();
+      }
+      //db에서 아무데이터가 안나오는경우??
+      else {
+        result.put("result",0);
+        result.put("msg","데이터가 없습니다.");
+        return Response.ok(result).build();
       }
     } catch (Exception e) {
       logger.info(e.getMessage());
@@ -251,7 +257,10 @@ public class WorkReportSQLResource {
       e.printStackTrace();
       checkLogin.close();
       con.close();
-      return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      result.put("result",0);
+      result.put("msg",""+e.getMessage());
+      return Response.ok(result).build();
+
     } finally {
       //Close resources in all cases
       checkLogin.close();
@@ -264,15 +273,19 @@ public class WorkReportSQLResource {
   @Produces("application/json")
   @Path("/getCode")
   public Response getCode() throws SQLException {
-    JSONArray results = new JSONArray();
+
     Connection con = getSQLConnection();
     String query =
         "SELECT L.LCLS_NM, L.LCLS_CD, M.MCLS_NM, M.MCLS_CD FROM WORK_MCLASS M, WORK_LCLASS L WHERE M.LCLS_CD=L.LCLS_CD";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
+    JSONArray results = new JSONArray();
+    JSONObject object = new JSONObject();
+
     try {
       ResultSet data = checkLogin.executeQuery();
+
       while (data.next()) {
         JSONObject item = new JSONObject();
         item.put("LCLS_NM", data.getString(1));
@@ -281,15 +294,24 @@ public class WorkReportSQLResource {
         item.put("MCLS_CD", data.getInt(4));
         results.add(item);
       }
+      object.put("result",1);
+      object.put("content",results);
+      object.put("msg","");
 
-      return Response.ok(results).build();
+
+      return Response.ok(object).build();
+
     } catch (Exception e) {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
       checkLogin.close();
       con.close();
-      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+
+      object.put("result",0);
+      object.put("msg"," "+e.getMessage());
+      return Response.ok(object).build();
+
     } finally {
       //Close resources in all cases
       checkLogin.close();
@@ -302,11 +324,15 @@ public class WorkReportSQLResource {
   @Produces("application/json")
   @Path("/getProjects")
   public Response getProjects() throws SQLException {
-    JSONArray results = new JSONArray();
+
     Connection con = getSQLConnection();
     String query = "SELECT PROJ_CD, PROJ_NM FROM PROJ_INFO";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    JSONArray results = new JSONArray();
+    JSONObject object = new JSONObject();
+
 
     try {
       ResultSet data = checkLogin.executeQuery();
@@ -314,18 +340,22 @@ public class WorkReportSQLResource {
         JSONObject item = new JSONObject();
         item.put("PROJ_CD", data.getInt(1));
         item.put("PROJ_NM", data.getString(2));
-
         results.add(item);
       }
-
-      return Response.ok(results).build();
+      object.put("result",1);
+      object.put("content",results);
+      object.put("msg","");
+      return Response.ok(object).build();
     } catch (Exception e) {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
       checkLogin.close();
       con.close();
-      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+      object.put("result",0);
+      object.put("msg",""+e.getMessage());
+      return Response.ok(object).build();
+
     } finally {
       //Close resources in all cases
       checkLogin.close();
@@ -360,16 +390,18 @@ public class WorkReportSQLResource {
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
+    JSONObject object = new JSONObject();
+    JSONObject item = new JSONObject();
+    JSONObject MCLS = new JSONObject();
+    JSONObject PROJ = new JSONObject();
     try {
       getWorkingDay.setString(1, userId);
       getWorkingDay.setString(2, date);
 
       ResultSet data = getWorkingDay.executeQuery();
-      JSONObject item = new JSONObject();
-      JSONObject MCLS = new JSONObject();
-      JSONObject PROJ = new JSONObject();
 
       if (data.first()) {
+        object.put("result",1);
 
         item.put("WORK_YMD", data.getString("WORK_YMD"));
         item.put("DEPT_NM", data.getString("DEPT_NM"));
@@ -388,9 +420,16 @@ public class WorkReportSQLResource {
         item.put("E_TIME", data.getString("E_TIME"));
         item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
         item.put("UPD_TIME", data.getString("UPD_TIME"));
-        return Response.ok(item).build();
+        object.put("content",item);
+
+        object.put("msg","");
+
+        return Response.ok(object).build();
       } else {
-        return Response.status(Status.NOT_FOUND).entity("error...").build();
+
+        object.put("result",0);
+        object.put("msg","데이터가 없습니다.");
+        return Response.ok(object).build();
       }
     } catch (Exception e) {
       logger.info(e.getMessage());
@@ -398,7 +437,10 @@ public class WorkReportSQLResource {
       e.printStackTrace();
       getWorkingDay.close();
       con.close();
-      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+      object.put("result",0);
+      object.put("msg",""+e.getMessage());
+      return Response.ok(object).build();
+
     } finally {
       //Close resources in all cases
       getWorkingDay.close();
@@ -437,7 +479,7 @@ public class WorkReportSQLResource {
 
     PreparedStatement updateWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
+    JSONObject obj = new JSONObject();
     try {
       updateWorkingDay.setString(1, LCLS_CD);
       updateWorkingDay.setString(2, MCLS_CD);
@@ -476,16 +518,18 @@ public class WorkReportSQLResource {
             con.prepareStatement(query1, ResultSet.TYPE_SCROLL_INSENSITIVE,
                 ResultSet.CONCUR_READ_ONLY);
 
+        JSONObject object = new JSONObject();
+        JSONObject item = new JSONObject();
+        JSONObject MCLS = new JSONObject();
+        JSONObject PROJ = new JSONObject();
         try {
           getWorkingDay.setString(1, USER_ID);
           getWorkingDay.setString(2, date);
 
           ResultSet data = getWorkingDay.executeQuery();
-          JSONObject item = new JSONObject();
-          JSONObject MCLS = new JSONObject();
-          JSONObject PROJ = new JSONObject();
 
           if (data.first()) {
+            object.put("result",1);
 
             item.put("WORK_YMD", data.getString("WORK_YMD"));
             item.put("DEPT_NM", data.getString("DEPT_NM"));
@@ -504,15 +548,27 @@ public class WorkReportSQLResource {
             item.put("E_TIME", data.getString("E_TIME"));
             item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
             item.put("UPD_TIME", data.getString("UPD_TIME"));
-            return Response.ok(item).build();
+            object.put("content",item);
+
+            object.put("msg","");
+
+            return Response.ok(object).build();
           } else {
-            return Response.status(Status.NOT_FOUND).entity("error...").build();
+
+            object.put("result",0);
+            object.put("msg","데이터가 없습니다.");
+            return Response.ok(object).build();
           }
         } catch (Exception e) {
           logger.info(e.getMessage());
           logger.log(Level.INFO, e.getMessage(), e);
           e.printStackTrace();
-          return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+          getWorkingDay.close();
+          con.close();
+          object.put("result",0);
+          object.put("msg",""+e.getMessage());
+          return Response.ok(object).build();
+
         } finally {
           //Close resources in all cases
           getWorkingDay.close();
@@ -529,13 +585,20 @@ public class WorkReportSQLResource {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
-      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+      obj.put("result",0);
+      obj.put("msg",""+e.getMessage());
+      return Response.ok(obj).build();
     } finally {
       //Close resources in all cases
       updateWorkingDay.close();
       con.close();
     }
   }
+
+  public void updateResult(){
+
+  }
+
 
   //비밀번호 수정
   @POST
@@ -544,21 +607,25 @@ public class WorkReportSQLResource {
   public Response changePwd(@FormParam("userId") String userId, @FormParam("curPwd") String curPwd,
       @FormParam("newPwd") String newPwd, @FormParam("newPwdConfirm") String newPwdConfirm)
       throws SQLException {
-    JSONObject res = new JSONObject();
+
     Connection con = getSQLConnection();
     String query = "update USER_INFO set USER_PW=? where user_id=? and user_pw=?";
 
     PreparedStatement changePwd =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
+    JSONObject res = new JSONObject();
+
     try {
 
       if (!newPwd.equals(newPwdConfirm)) {
-        res.put("result", "비밀번호 확인 불일치.");
+        res.put("result",0);
+        res.put("msg", "비밀번호 확인 불일치.");
         return Response.ok(res).build();
       }
       if (newPwd.equals(curPwd)) {
-        res.put("result", "기존 비밀번호와 동일합니다.");
+        res.put("result",0);
+        res.put("msg", "기존 비밀번호와 동일합니다.");
         return Response.ok(res).build();
       }
 
@@ -570,11 +637,14 @@ public class WorkReportSQLResource {
 
       if (cnt > 0) {
         //업데이트 성공
-        res.put("result", "비밀번호가 변경되었습니다.");
+        res.put("result", 1);
+        res.put("msg","");
         return Response.ok(res).build();
       } else {
         //변경 내역이 없음 => 현재비밀번호 틀림
-        res.put("result", "현재비밀번호가 틀렸습니다.");
+        res.put("result",0);
+        res.put("msg", "현재비밀번호가 틀렸습니다.");
+
         return Response.ok(res).build();
       }
     } catch (Exception e) {
@@ -583,7 +653,10 @@ public class WorkReportSQLResource {
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
 
-      return Response.status(Status.NOT_FOUND).entity("Code not found...").build();
+      res.put("result",0);
+      res.put("msg", ""+e.getMessage());
+
+      return Response.ok(res).build();
     } finally {
       //Close resources in all cases
       changePwd.close();
@@ -605,11 +678,12 @@ public class WorkReportSQLResource {
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
+
+    JSONObject object = new JSONObject();
+
     try {
       ResultSet data = getWorkingDay.executeQuery();
       JSONArray res = new JSONArray();
-
-
       while(data.next()){
         JSONObject item = new JSONObject();
         item.put("NAME",data.getString(1));
@@ -620,7 +694,12 @@ public class WorkReportSQLResource {
         res.add(item);
 
       }
-      return Response.ok(res).build();
+
+      object.put("result",1);
+      object.put("content", res);
+      object.put("msg","");
+
+      return Response.ok(object).build();
 
 
     } catch (Exception e) {
@@ -629,7 +708,10 @@ public class WorkReportSQLResource {
       e.printStackTrace();
       getWorkingDay.close();
       con.close();
-      return Response.status(Status.NOT_FOUND).entity("data not found...").build();
+
+      object.put("result",0);
+      object.put("msg",""+e.getMessage());
+      return Response.ok(object).build();
     } finally {
       //Close resources in all cases
       getWorkingDay.close();
