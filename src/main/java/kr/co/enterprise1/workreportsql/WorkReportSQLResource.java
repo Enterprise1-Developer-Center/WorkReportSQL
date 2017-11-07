@@ -211,9 +211,9 @@ public class WorkReportSQLResource {
   //로그인
   @GET
   @Produces("application/json")
-  @Path("/login/{userId}/{userPw}")
-  public Response checkLogin(@PathParam("userId") String userId,
-      @PathParam("userPw") String userPw
+  @Path("/login")
+  public Response checkLogin(@QueryParam("userId") String userId,
+      @QueryParam("userPw") String userPw
 
   ) throws SQLException {
     logger.info("userId = " + userId + ", userPw = " + userPw);
@@ -592,17 +592,16 @@ public class WorkReportSQLResource {
   //워킹데이 요약 정보 가져오기
   @GET
   @Produces("application/json")
-  @Path("/getSummary/{date}")
-  public Response getSummary(@PathParam("date")String date) throws SQLException {
+  @Path("/getSummary")
+  public Response getSummary() throws SQLException {
 
     Connection con = getSQLConnection();
     String query = "select w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
-        + "and to_char(work_ymd,'yyyy-mm-dd')=?";
+        + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd')";
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     try {
-      getWorkingDay.setString(1,date);
       ResultSet data = getWorkingDay.executeQuery();
       JSONArray res = new JSONArray();
 
