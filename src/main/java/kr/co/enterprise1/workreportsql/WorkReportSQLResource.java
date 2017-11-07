@@ -208,6 +208,8 @@ public class WorkReportSQLResource {
     }
   }
 
+  //성공:0  / 실패:1
+  //msg:""   msg:로그인정보가 잘못되었습니다.
   //로그인
   @GET
   @Produces("application/json")
@@ -232,10 +234,12 @@ public class WorkReportSQLResource {
       if (data.first()) {
         if (data.getInt(1) == 1) {
 
-          result.put("ok", 1);
+          result.put("code", 0);
+          result.put("msg","");
           return Response.ok(result).build();
         } else {
-          result.put("ok", 0);
+          result.put("code", 1);
+          result.put("msg","로그인정보가 잘못되었습니다.");
           return Response.ok(result).build();
         }
       } else {
