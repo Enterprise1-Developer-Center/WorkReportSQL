@@ -237,7 +237,7 @@ public class WorkReportSQLResource {
       if (data.first()) {
         //로그인 성공
         Date date = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (EEE)", Locale.KOREAN);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.KOREAN);
 
         if (data.getInt(1) == 1) {
           result2.put("date",sdf.format(date).toString());
