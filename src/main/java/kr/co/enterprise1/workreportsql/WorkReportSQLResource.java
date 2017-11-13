@@ -17,7 +17,10 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -223,6 +226,8 @@ public class WorkReportSQLResource {
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     JSONObject result = new JSONObject();
+    JSONObject result2 = new JSONObject();
+
 
     try {
       checkLogin.setString(1, userId);
@@ -231,10 +236,14 @@ public class WorkReportSQLResource {
 
       if (data.first()) {
         //로그인 성공
-        if (data.getInt(1) == 1) {
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (EEE)", Locale.KOREAN);
 
+        if (data.getInt(1) == 1) {
+          result2.put("time",sdf.format(date).toString());
           result.put("result", 1);
           result.put("msg","");
+          result.put("content",result2);
 
           return Response.ok(result).build();
         }
