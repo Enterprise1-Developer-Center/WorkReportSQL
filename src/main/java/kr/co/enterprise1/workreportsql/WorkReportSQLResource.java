@@ -240,7 +240,7 @@ public class WorkReportSQLResource {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (EEE)", Locale.KOREAN);
 
         if (data.getInt(1) == 1) {
-          result2.put("time",sdf.format(date).toString());
+          result2.put("date",sdf.format(date).toString());
           result.put("result", 1);
           result.put("msg","");
           result.put("content",result2);
