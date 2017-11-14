@@ -285,7 +285,7 @@ public class WorkReportSQLResource {
 
     Connection con = getSQLConnection();
     String query =
-        "SELECT L.LCLS_NM, L.LCLS_CD, M.MCLS_NM, M.MCLS_CD FROM WORK_MCLASS M, WORK_LCLASS L WHERE M.LCLS_CD=L.LCLS_CD";
+        "SELECT L.LCLS_NM, L.LCLS_CD, M.MCLS_NM, M.MCLS_CD, M.REMARK FROM WORK_MCLASS M, WORK_LCLASS L WHERE M.LCLS_CD=L.LCLS_CD";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -301,6 +301,7 @@ public class WorkReportSQLResource {
         item.put("LCLS_CD", data.getInt(2));
         item.put("MCLS_NM", data.getString(3));
         item.put("MCLS_CD", data.getInt(4));
+        item.put("REMARK",data.getString(5));
         results.add(item);
       }
       object.put("result",1);
