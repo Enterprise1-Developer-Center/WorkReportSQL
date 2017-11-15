@@ -329,14 +329,14 @@ public class WorkReportSQLResource {
     }
   }
 
-  //프로젝트 정보 가져오기
+  //프로젝트 정보 가져오기 0번 default코드 제외
   @GET
   @Produces("application/json")
   @Path("/getProjects")
   public Response getProjects() throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "SELECT PROJ_CD, PROJ_NM FROM PROJ_INFO";
+    String query = "SELECT LPAD(PROJ_CD,4,'0'), PROJ_NM FROM PROJ_INFO where PROJ_CD != 0";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
