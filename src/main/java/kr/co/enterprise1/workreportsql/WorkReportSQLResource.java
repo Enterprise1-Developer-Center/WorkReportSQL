@@ -18,6 +18,7 @@ import io.swagger.annotations.ApiResponses;
 
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
@@ -298,9 +299,9 @@ public class WorkReportSQLResource {
       while (data.next()) {
         JSONObject item = new JSONObject();
         item.put("LCLS_NM", data.getString(1));
-        item.put("LCLS_CD", data.getInt(2));
+        item.put("LCLS_CD", data.getString(2));
         item.put("MCLS_NM", data.getString(3));
-        item.put("MCLS_CD", data.getInt(4));
+        item.put("MCLS_CD", data.getString(4));
         item.put("REMARK",data.getString(5));
         results.add(item);
       }
@@ -336,7 +337,7 @@ public class WorkReportSQLResource {
   public Response getProjects() throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "SELECT LPAD(PROJ_CD,4,'0'), PROJ_NM FROM PROJ_INFO";
+    String query = "SELECT PROJ_CD, PROJ_NM FROM PROJ_INFO";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -348,7 +349,7 @@ public class WorkReportSQLResource {
       ResultSet data = checkLogin.executeQuery();
       while (data.next()) {
         JSONObject item = new JSONObject();
-        item.put("PROJ_CD", data.getInt(1));
+        item.put("PROJ_CD", data.getString(1));
         item.put("PROJ_NM", data.getString(2));
         results.add(item);
       }
@@ -438,7 +439,7 @@ public class WorkReportSQLResource {
       } else {
 
         object.put("result",0);
-        object.put("msg","데이터가 없습니다.");
+        object.put("msg","정확한 날짜를 선택해주세요.");
         return Response.ok(object).build();
       }
     } catch (Exception e) {
@@ -465,8 +466,8 @@ public class WorkReportSQLResource {
   public Response updateWorkingDay(@FormParam("LCLS_CD") String LCLS_CD,
       @FormParam("MCLS_CD") String MCLS_CD, @FormParam("DETAIL") String DETAIL,
       @FormParam("PRJ_CD") String PRJ_CD, @FormParam("S_TIME") String S_TIME,
-      @FormParam("E_TIME") String E_TIME, @FormParam("UPD_TIME") String UPD_TIME,
-      @FormParam("USER_ID") String USER_ID, @FormParam("date") String date
+      @FormParam("E_TIME") String E_TIME, @FormParam("USER_ID") String USER_ID,
+      @FormParam("date") String date
   ) throws SQLException {
 
     Connection con = getSQLConnection();
@@ -486,6 +487,10 @@ public class WorkReportSQLResource {
 
     //1:대구분 코드, 2:구분 코드, 3:상세내용, 4:프로젝트코드, 5:초과근무 시작시간, 6:초과근무 종료시간, 7:초과근무 종료시간, 8:초과근무 시작시간, 9:유저ID, 10:조회 날짜
     //11:수정시간, 12:유저ID, 13:조회날짜
+
+    //현재 시간 구하기
+    String UPD_TIME = getCurrentTime();
+
 
     PreparedStatement updateWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -729,5 +734,14 @@ public class WorkReportSQLResource {
     }
   }
 
+
+  //현재 날짜 시간 구하는 함수
+  public String getCurrentTime(){
+    Calendar cur = Calendar.getInstance();  // 현재 날짜/시간 등의 각종 정보 얻기
+    String result = ""+cur.get(Calendar.YEAR)+"-"+(cur.get(Calendar.MONTH)+1)+"-"+cur.get(Calendar.DAY_OF_MONTH)+" "+cur.get(Calendar.HOUR_OF_DAY)+":"
+        +cur.get(Calendar.MINUTE);
+
+    return result;
+  }
 
 }
