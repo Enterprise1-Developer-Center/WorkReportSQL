@@ -391,8 +391,8 @@ public class WorkReportSQLResource {
         + "DETAIL, "
         + "PROJ_CD,"
         + "PROJ_INFO.PROJ_NM PROJ_NM, "
-        + "to_char(S_TIME, 'yyyy-mm-dd hh24:mi') S_TIME, "
-        + "to_char(E_TIME, 'yyyy-mm-dd hh24:mi') E_TIME, "
+        + "to_char(S_TIME, 'hh24:mi') S_TIME, "
+        + "to_char(E_TIME, 'hh24:mi') E_TIME, "
         + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
         + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
         + "FROM WORK_DETAIL, PROJ_INFO  "
@@ -490,6 +490,8 @@ public class WorkReportSQLResource {
 
     //현재 시간 구하기
     String UPD_TIME = getCurrentTime();
+    String s_time = makeSTime(date, S_TIME);
+    String e_time = makeETime(date, S_TIME, E_TIME);
 
 
     PreparedStatement updateWorkingDay =
@@ -500,10 +502,10 @@ public class WorkReportSQLResource {
       updateWorkingDay.setString(2, MCLS_CD);
       updateWorkingDay.setString(3, DETAIL);
       updateWorkingDay.setString(4, PRJ_CD);
-      updateWorkingDay.setString(5, S_TIME);
-      updateWorkingDay.setString(6, E_TIME);
-      updateWorkingDay.setString(7, E_TIME);
-      updateWorkingDay.setString(8, S_TIME);
+      updateWorkingDay.setString(5, s_time);
+      updateWorkingDay.setString(6, e_time);
+      updateWorkingDay.setString(7, e_time);
+      updateWorkingDay.setString(8, s_time);
       updateWorkingDay.setString(9, USER_ID);
       updateWorkingDay.setString(10, date);
       updateWorkingDay.setString(11, UPD_TIME);
@@ -522,8 +524,8 @@ public class WorkReportSQLResource {
             + "DETAIL, "
             + "PROJ_CD,"
             + "PROJ_INFO.PROJ_NM PROJ_NM, "
-            + "to_char(S_TIME, 'yyyy-mm-dd hh24:mi') S_TIME, "
-            + "to_char(E_TIME, 'yyyy-mm-dd hh24:mi') E_TIME, "
+            + "to_char(S_TIME, 'hh24:mi') S_TIME, "
+            + "to_char(E_TIME, 'hh24:mi') E_TIME, "
             + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
             + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
             + "FROM WORK_DETAIL, PROJ_INFO  "
@@ -633,30 +635,42 @@ public class WorkReportSQLResource {
 
     try {
 
-      if (!newPwd.equals(newPwdConfirm)) {
-        res.put("result",0);
-        res.put("msg", "비밀번호 확인 불일치.");
-        return Response.ok(res).build();
-      }
-      if (newPwd.equals(curPwd)) {
-        res.put("result",0);
-        res.put("msg", "기존 비밀번호와 동일합니다.");
-        return Response.ok(res).build();
-      }
 
-      changePwd.setString(1, newPwd);
+
+      changePwd.setString(1, curPwd);
       changePwd.setString(2, userId);
       changePwd.setString(3, curPwd);
 
       int cnt = changePwd.executeUpdate();
 
       if (cnt > 0) {
-        //업데이트 성공
-        res.put("result", 1);
-        res.put("msg","");
-        return Response.ok(res).build();
+        //현재 비밀번호 일치
+        if (!newPwd.equals(newPwdConfirm)) {
+          res.put("result",0);
+          res.put("msg", "비밀번호 확인 불일치.");
+          return Response.ok(res).build();
+        }
+        if (newPwd.equals(curPwd)) {
+          res.put("result",0);
+          res.put("msg", "기존 비밀번호와 동일합니다.");
+          return Response.ok(res).build();
+        }
+
+
+        changePwd.setString(1, newPwd);
+        int cnt2 = changePwd.executeUpdate();
+        if(cnt2 > 0){
+          res.put("result", 1);
+          res.put("msg","");
+          return Response.ok(res).build();
+        }else{
+          res.put("result", 0);
+          res.put("msg","DB업데이드 오류");
+          return Response.ok(res).build();
+        }
+
       } else {
-        //변경 내역이 없음 => 현재비밀번호 틀림
+        //현재비밀번호 틀림
         res.put("result",0);
         res.put("msg", "현재비밀번호가 틀렸습니다.");
 
@@ -685,11 +699,12 @@ public class WorkReportSQLResource {
   @GET
   @Produces("application/json")
   @Path("/getSummary")
-  public Response getSummary() throws SQLException {
+  public Response getSummary(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
 
     Connection con = getSQLConnection();
     String query = "select w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
-        + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd')";
+        + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd') "
+        + "and w.dept_nm=?";
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -697,9 +712,13 @@ public class WorkReportSQLResource {
     JSONObject object = new JSONObject();
 
     try {
+      getWorkingDay.setString(1,DEPT_NM);
       ResultSet data = getWorkingDay.executeQuery();
       JSONArray res = new JSONArray();
+      Boolean flag = false;
+
       while(data.next()){
+        if(!flag) flag=true;
         JSONObject item = new JSONObject();
         item.put("NAME",data.getString(1));
         item.put("PROJ_NM",data.getString(2));
@@ -710,11 +729,19 @@ public class WorkReportSQLResource {
 
       }
 
-      object.put("result",1);
-      object.put("content", res);
-      object.put("msg","");
+      if(flag){
+        object.put("result",1);
+        object.put("content", res);
+        object.put("msg","");
 
-      return Response.ok(object).build();
+        return Response.ok(object).build();
+      }else {
+        object.put("result",0);
+        object.put("msg","부서명을 정확하게 입력해주세요.");
+
+        return Response.ok(object).build();
+      }
+
 
 
     } catch (Exception e) {
@@ -743,5 +770,34 @@ public class WorkReportSQLResource {
 
     return result;
   }
+
+  //초과 근무 시작 시간에 년 월 일 붙이기
+  public String makeSTime(String date, String time){
+
+    String result = date+" "+time;
+    return result;
+  }
+
+  //초과 근무 종료시간에 년 월 일 붙이기 -> 하루지나서 까지 일때 -> 하루 + 1
+  public String makeETime(String date, String stime, String etime){
+    String result="";
+    String[] dateArr = date.split("-");
+    Calendar cal = Calendar.getInstance();
+
+    cal.set(Integer.parseInt(dateArr[0]),Integer.parseInt(dateArr[1])-1,Integer.parseInt(dateArr[2]));
+
+    int s_time_hour = Integer.parseInt(stime.split(":")[0]);
+    int e_time_hour = Integer.parseInt(etime.split(":")[0]);
+
+    if(s_time_hour > e_time_hour){
+      cal.add(Calendar.DAY_OF_MONTH,1);
+    }
+
+    result=cal.get(Calendar.YEAR)+"-"+(cal.get(Calendar.MONTH)+1)+"-"+cal.get(Calendar.DAY_OF_MONTH)+" "+etime;
+
+    return result;
+  }
+
+
 
 }
