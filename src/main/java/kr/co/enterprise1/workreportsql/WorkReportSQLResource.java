@@ -222,7 +222,7 @@ public class WorkReportSQLResource {
       @QueryParam("userPw") String userPw
   ) throws SQLException {
     Connection con = getSQLConnection();
-    String query = "SELECT COUNT(*) from USER_INFO WHERE USER_ID=? AND USER_PW=?";
+    String query = "SELECT u.USER_ID, d.DEPT_NM from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -240,25 +240,23 @@ public class WorkReportSQLResource {
         Date date = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.KOREAN);
 
-        if (data.getInt(1) == 1) {
+
           result2.put("date",sdf.format(date).toString());
+          result2.put("USER_ID",data.getString(1));
+          result2.put("DEPT_NM",data.getString(2));
+
           result.put("result", 1);
           result.put("msg","");
           result.put("content",result2);
 
           return Response.ok(result).build();
-        }
-        //로그인 실패(아이디 비밀번호 틀림 / 공백)
-        else {
-          result.put("result", 0);
-          result.put("msg","로그인정보가 잘못되었습니다.");
-          return Response.ok(result).build();
-        }
+
+
       }
       //db에서 아무데이터가 안나오는경우??
       else {
-        result.put("result",0);
-        result.put("msg","데이터가 없습니다.");
+        result.put("result", 0);
+        result.put("msg","로그인정보가 잘못되었습니다.");
         return Response.ok(result).build();
       }
     } catch (Exception e) {
