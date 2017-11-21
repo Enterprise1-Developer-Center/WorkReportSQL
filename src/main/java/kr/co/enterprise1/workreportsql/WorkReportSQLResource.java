@@ -700,7 +700,7 @@ public class WorkReportSQLResource {
   public Response getSummary(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "select w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
+    String query = "select  w.user_id, w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
         + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd') "
         + "and w.dept_nm=?";
     PreparedStatement getWorkingDay =
@@ -718,10 +718,12 @@ public class WorkReportSQLResource {
       while(data.next()){
         if(!flag) flag=true;
         JSONObject item = new JSONObject();
-        item.put("NAME",data.getString(1));
-        item.put("PROJ_NM",data.getString(2));
-        item.put("MCLS_CD",data.getString(3));
-        item.put("DETAIL",data.getString(4));
+
+        item.put("USER_ID",data.getString(1));
+        item.put("NAME",data.getString(2));
+        item.put("PROJ_NM",data.getString(3));
+        item.put("MCLS_CD",data.getString(4));
+        item.put("DETAIL",data.getString(5));
 
         res.add(item);
 
