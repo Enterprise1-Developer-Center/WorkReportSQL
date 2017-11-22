@@ -222,13 +222,13 @@ public class WorkReportSQLResource {
       @QueryParam("userPw") String userPw
   ) throws SQLException {
     Connection con = getSQLConnection();
-    String query = "SELECT u.USER_ID, d.DEPT_NM from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
+    String query =
+        "SELECT u.USER_ID, d.DEPT_NM from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
     PreparedStatement checkLogin =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     JSONObject result = new JSONObject();
     JSONObject result2 = new JSONObject();
-
 
     try {
       checkLogin.setString(1, userId);
@@ -240,23 +240,20 @@ public class WorkReportSQLResource {
         Date date = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.KOREAN);
 
+        result2.put("date", sdf.format(date).toString());
+        result2.put("USER_ID", data.getString(1));
+        result2.put("DEPT_NM", data.getString(2));
 
-          result2.put("date",sdf.format(date).toString());
-          result2.put("USER_ID",data.getString(1));
-          result2.put("DEPT_NM",data.getString(2));
+        result.put("result", 1);
+        result.put("msg", "");
+        result.put("content", result2);
 
-          result.put("result", 1);
-          result.put("msg","");
-          result.put("content",result2);
-
-          return Response.ok(result).build();
-
-
+        return Response.ok(result).build();
       }
       //db에서 아무데이터가 안나오는경우??
       else {
         result.put("result", 0);
-        result.put("msg","로그인정보가 잘못되었습니다.");
+        result.put("msg", "로그인정보가 잘못되었습니다.");
         return Response.ok(result).build();
       }
     } catch (Exception e) {
@@ -265,10 +262,9 @@ public class WorkReportSQLResource {
       e.printStackTrace();
       checkLogin.close();
       con.close();
-      result.put("result",0);
-      result.put("msg",""+e.getMessage());
+      result.put("result", 0);
+      result.put("msg", "" + e.getMessage());
       return Response.ok(result).build();
-
     } finally {
       //Close resources in all cases
       checkLogin.close();
@@ -300,16 +296,14 @@ public class WorkReportSQLResource {
         item.put("LCLS_CD", data.getString(2));
         item.put("MCLS_NM", data.getString(3));
         item.put("MCLS_CD", data.getString(4));
-        item.put("REMARK",data.getString(5));
+        item.put("REMARK", data.getString(5));
         results.add(item);
       }
-      object.put("result",1);
-      object.put("content",results);
-      object.put("msg","");
-
+      object.put("result", 1);
+      object.put("content", results);
+      object.put("msg", "");
 
       return Response.ok(object).build();
-
     } catch (Exception e) {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
@@ -317,10 +311,9 @@ public class WorkReportSQLResource {
       checkLogin.close();
       con.close();
 
-      object.put("result",0);
-      object.put("msg"," "+e.getMessage());
+      object.put("result", 0);
+      object.put("msg", " " + e.getMessage());
       return Response.ok(object).build();
-
     } finally {
       //Close resources in all cases
       checkLogin.close();
@@ -332,22 +325,25 @@ public class WorkReportSQLResource {
   @GET
   @Produces("application/json")
   @Path("/getProjects")
-  public Response getProjects(@QueryParam("DEPT_NM")String DEPT_NM) throws SQLException {
+  public Response getProjects(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
 
     Connection con = getSQLConnection();
     String query = "SELECT PROJ_CD, PROJ_NM, dept_nm FROM PROJ_INFO";
-    String query_dept = "SELECT PROJ_CD, PROJ_NM, dept_nm  FROM PROJ_INFO where dept_nm=? or dept_nm='0'";
+    String query_dept =
+        "SELECT PROJ_CD, PROJ_NM, dept_nm  FROM PROJ_INFO where dept_nm=? or dept_nm='0'";
 
     PreparedStatement checkLogin =
-        DEPT_NM == null?
-        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY):
-            con.prepareStatement(query_dept, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        DEPT_NM == null ?
+            con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY) :
+            con.prepareStatement(query_dept, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
 
     JSONArray results = new JSONArray();
     JSONObject object = new JSONObject();
 
-    if(DEPT_NM!=null){
-      checkLogin.setString(1,DEPT_NM);
+    if (DEPT_NM != null) {
+      checkLogin.setString(1, DEPT_NM);
     }
     try {
       ResultSet data = checkLogin.executeQuery();
@@ -359,9 +355,9 @@ public class WorkReportSQLResource {
 
         results.add(item);
       }
-      object.put("result",1);
-      object.put("content",results);
-      object.put("msg","");
+      object.put("result", 1);
+      object.put("content", results);
+      object.put("msg", "");
       return Response.ok(object).build();
     } catch (Exception e) {
       logger.info(e.getMessage());
@@ -369,10 +365,9 @@ public class WorkReportSQLResource {
       e.printStackTrace();
       checkLogin.close();
       con.close();
-      object.put("result",0);
-      object.put("msg",""+e.getMessage());
+      object.put("result", 0);
+      object.put("msg", "" + e.getMessage());
       return Response.ok(object).build();
-
     } finally {
       //Close resources in all cases
       checkLogin.close();
@@ -389,21 +384,22 @@ public class WorkReportSQLResource {
   ) throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "SELECT USER_ID, "
-        + "USER_NM,"
-        + "DEPT_NM,"
-        + "to_char( WORK_YMD, 'YYYY-MM-DD')  WORK_YMD, "
-        + "MCLS_CD,"
-        + "DETAIL, "
-        + "PROJ_CD,"
-        + "PROJ_INFO.PROJ_NM PROJ_NM, "
-        + "to_char(S_TIME, 'hh24:mi') S_TIME, "
-        + "to_char(E_TIME, 'hh24:mi') E_TIME, "
-        + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
-        + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
-        + "FROM WORK_DETAIL, PROJ_INFO  "
-        + "WHERE WORK_DETAIL.PRJ_CD = PROJ_INFO.PROJ_CD "
-        + "and USER_ID =? and to_char(WORK_YMD,'yyyy-mm-dd') = ?";
+    String query = "SELECT w.USER_ID,"
+        + " w.USER_NM,"
+        + " w.DEPT_NM,"
+        + " to_char( w.WORK_YMD, 'YYYY-MM-DD')  WORK_YMD,"
+        + " w.MCLS_CD,"
+        + " w.DETAIL,"
+        + " p.PROJ_CD,"
+        + " p.PROJ_NM PROJ_NM,"
+        + " to_char(w.S_TIME, 'hh24:mi') S_TIME,"
+        + " to_char(w.E_TIME, 'hh24:mi') E_TIME,"
+        + " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,"
+        + "to_char(w.UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME"
+        + " FROM WORK_DETAIL w, PROJ_INFO p "
+        + "WHERE w.PRJ_CD = p.PROJ_CD "
+        + "and w.USER_ID =? "
+        + "and to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -418,7 +414,7 @@ public class WorkReportSQLResource {
       ResultSet data = getWorkingDay.executeQuery();
 
       if (data.first()) {
-        object.put("result",1);
+        object.put("result", 1);
 
         item.put("WORK_YMD", data.getString("WORK_YMD"));
         item.put("DEPT_NM", data.getString("DEPT_NM"));
@@ -437,15 +433,15 @@ public class WorkReportSQLResource {
         item.put("E_TIME", data.getString("E_TIME"));
         item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
         item.put("UPD_TIME", data.getString("UPD_TIME"));
-        object.put("content",item);
+        object.put("content", item);
 
-        object.put("msg","");
+        object.put("msg", "");
 
         return Response.ok(object).build();
       } else {
 
-        object.put("result",0);
-        object.put("msg","정확한 날짜를 선택해주세요.");
+        object.put("result", 0);
+        object.put("msg", "정확한 날짜를 선택해주세요.");
         return Response.ok(object).build();
       }
     } catch (Exception e) {
@@ -454,10 +450,9 @@ public class WorkReportSQLResource {
       e.printStackTrace();
       getWorkingDay.close();
       con.close();
-      object.put("result",0);
-      object.put("msg",""+e.getMessage());
+      object.put("result", 0);
+      object.put("msg", "" + e.getMessage());
       return Response.ok(object).build();
-
     } finally {
       //Close resources in all cases
       getWorkingDay.close();
@@ -499,7 +494,6 @@ public class WorkReportSQLResource {
     String s_time = makeSTime(date, S_TIME);
     String e_time = makeETime(date, S_TIME, E_TIME);
 
-
     PreparedStatement updateWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     JSONObject obj = new JSONObject();
@@ -522,21 +516,22 @@ public class WorkReportSQLResource {
 
       if (cnt > 0) {
         //업데이트 성공
-        String query1 = "SELECT USER_ID, "
-            + "USER_NM,"
-            + "DEPT_NM,"
-            + "to_char( WORK_YMD, 'YYYY-MM-DD')  WORK_YMD, "
-            + "MCLS_CD,"
-            + "DETAIL, "
-            + "PROJ_CD,"
-            + "PROJ_INFO.PROJ_NM PROJ_NM, "
-            + "to_char(S_TIME, 'hh24:mi') S_TIME, "
-            + "to_char(E_TIME, 'hh24:mi') E_TIME, "
-            + "to_char(EXTRA_TIME, 'hh24:mi') EXTRA_TIME, "
-            + "to_char(UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME "
-            + "FROM WORK_DETAIL, PROJ_INFO  "
-            + "WHERE WORK_DETAIL.PRJ_CD = PROJ_INFO.PROJ_CD "
-            + "and USER_ID =? and to_char(WORK_YMD,'yyyy-mm-dd') = ?";
+        String query1 = "SELECT w.USER_ID,"
+            + " w.USER_NM,"
+            + " w.DEPT_NM,"
+            + " to_char( w.WORK_YMD, 'YYYY-MM-DD')  WORK_YMD,"
+            + " w.MCLS_CD,"
+            + " w.DETAIL,"
+            + " p.PROJ_CD,"
+            + " p.PROJ_NM PROJ_NM,"
+            + " to_char(w.S_TIME, 'hh24:mi') S_TIME,"
+            + " to_char(w.E_TIME, 'hh24:mi') E_TIME,"
+            + " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,"
+            + "to_char(w.UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME"
+            + " FROM WORK_DETAIL w, PROJ_INFO p "
+            + "WHERE w.PRJ_CD = p.PROJ_CD "
+            + "and w.USER_ID =? "
+            + "and to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
         PreparedStatement getWorkingDay =
             con.prepareStatement(query1, ResultSet.TYPE_SCROLL_INSENSITIVE,
                 ResultSet.CONCUR_READ_ONLY);
@@ -552,7 +547,7 @@ public class WorkReportSQLResource {
           ResultSet data = getWorkingDay.executeQuery();
 
           if (data.first()) {
-            object.put("result",1);
+            object.put("result", 1);
 
             item.put("WORK_YMD", data.getString("WORK_YMD"));
             item.put("DEPT_NM", data.getString("DEPT_NM"));
@@ -571,15 +566,15 @@ public class WorkReportSQLResource {
             item.put("E_TIME", data.getString("E_TIME"));
             item.put("EXTRA_TIME", data.getString("EXTRA_TIME"));
             item.put("UPD_TIME", data.getString("UPD_TIME"));
-            object.put("content",item);
+            object.put("content", item);
 
-            object.put("msg","");
+            object.put("msg", "");
 
             return Response.ok(object).build();
           } else {
 
-            object.put("result",0);
-            object.put("msg","데이터가 없습니다.");
+            object.put("result", 0);
+            object.put("msg", "데이터가 없습니다.");
             return Response.ok(object).build();
           }
         } catch (Exception e) {
@@ -588,10 +583,9 @@ public class WorkReportSQLResource {
           e.printStackTrace();
           getWorkingDay.close();
           con.close();
-          object.put("result",0);
-          object.put("msg",""+e.getMessage());
+          object.put("result", 0);
+          object.put("msg", "" + e.getMessage());
           return Response.ok(object).build();
-
         } finally {
           //Close resources in all cases
           getWorkingDay.close();
@@ -608,8 +602,8 @@ public class WorkReportSQLResource {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
-      obj.put("result",0);
-      obj.put("msg",""+e.getMessage());
+      obj.put("result", 0);
+      obj.put("msg", "" + e.getMessage());
       return Response.ok(obj).build();
     } finally {
       //Close resources in all cases
@@ -618,10 +612,9 @@ public class WorkReportSQLResource {
     }
   }
 
-  public void updateResult(){
+  public void updateResult() {
 
   }
-
 
   //비밀번호 수정
   @POST
@@ -641,8 +634,6 @@ public class WorkReportSQLResource {
 
     try {
 
-
-
       changePwd.setString(1, curPwd);
       changePwd.setString(2, userId);
       changePwd.setString(3, curPwd);
@@ -652,32 +643,30 @@ public class WorkReportSQLResource {
       if (cnt > 0) {
         //현재 비밀번호 일치
         if (!newPwd.equals(newPwdConfirm)) {
-          res.put("result",0);
+          res.put("result", 0);
           res.put("msg", "비밀번호 확인 불일치.");
           return Response.ok(res).build();
         }
         if (newPwd.equals(curPwd)) {
-          res.put("result",0);
+          res.put("result", 0);
           res.put("msg", "기존 비밀번호와 동일합니다.");
           return Response.ok(res).build();
         }
 
-
         changePwd.setString(1, newPwd);
         int cnt2 = changePwd.executeUpdate();
-        if(cnt2 > 0){
+        if (cnt2 > 0) {
           res.put("result", 1);
-          res.put("msg","");
+          res.put("msg", "");
           return Response.ok(res).build();
-        }else{
+        } else {
           res.put("result", 0);
-          res.put("msg","DB업데이드 오류");
+          res.put("msg", "DB업데이드 오류");
           return Response.ok(res).build();
         }
-
       } else {
         //현재비밀번호 틀림
-        res.put("result",0);
+        res.put("result", 0);
         res.put("msg", "현재비밀번호가 틀렸습니다.");
 
         return Response.ok(res).build();
@@ -688,8 +677,8 @@ public class WorkReportSQLResource {
       logger.log(Level.INFO, e.getMessage(), e);
       e.printStackTrace();
 
-      res.put("result",0);
-      res.put("msg", ""+e.getMessage());
+      res.put("result", 0);
+      res.put("msg", "" + e.getMessage());
 
       return Response.ok(res).build();
     } finally {
@@ -699,8 +688,6 @@ public class WorkReportSQLResource {
     }
   }
 
-
-
   //워킹데이 요약 정보 가져오기
   @GET
   @Produces("application/json")
@@ -708,50 +695,46 @@ public class WorkReportSQLResource {
   public Response getSummary(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "select  w.user_id, w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
-        + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd') "
-        + "and w.dept_nm=?";
+    String query =
+        "select  w.user_id, w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
+            + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd') "
+            + "and w.dept_nm=?";
     PreparedStatement getWorkingDay =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
 
     JSONObject object = new JSONObject();
 
     try {
-      getWorkingDay.setString(1,DEPT_NM);
+      getWorkingDay.setString(1, DEPT_NM);
       ResultSet data = getWorkingDay.executeQuery();
       JSONArray res = new JSONArray();
       Boolean flag = false;
 
-      while(data.next()){
-        if(!flag) flag=true;
+      while (data.next()) {
+        if (!flag) flag = true;
         JSONObject item = new JSONObject();
 
-        item.put("USER_ID",data.getString(1));
-        item.put("NAME",data.getString(2));
-        item.put("PROJ_NM",data.getString(3));
-        item.put("MCLS_CD",data.getString(4));
-        item.put("DETAIL",data.getString(5));
+        item.put("USER_ID", data.getString(1));
+        item.put("NAME", data.getString(2));
+        item.put("PROJ_NM", data.getString(3));
+        item.put("MCLS_CD", data.getString(4));
+        item.put("DETAIL", data.getString(5));
 
         res.add(item);
-
       }
 
-      if(flag){
-        object.put("result",1);
+      if (flag) {
+        object.put("result", 1);
         object.put("content", res);
-        object.put("msg","");
+        object.put("msg", "");
 
         return Response.ok(object).build();
-      }else {
-        object.put("result",0);
-        object.put("msg","부서명을 정확하게 입력해주세요.");
+      } else {
+        object.put("result", 0);
+        object.put("msg", "부서명을 정확하게 입력해주세요.");
 
         return Response.ok(object).build();
       }
-
-
-
     } catch (Exception e) {
       logger.info(e.getMessage());
       logger.log(Level.INFO, e.getMessage(), e);
@@ -759,8 +742,8 @@ public class WorkReportSQLResource {
       getWorkingDay.close();
       con.close();
 
-      object.put("result",0);
-      object.put("msg",""+e.getMessage());
+      object.put("result", 0);
+      object.put("msg", "" + e.getMessage());
       return Response.ok(object).build();
     } finally {
       //Close resources in all cases
@@ -769,43 +752,185 @@ public class WorkReportSQLResource {
     }
   }
 
+  //가동률 통계표 가져오기
+  @GET
+  @Produces("application/json")
+  @Path("/getOperRatio")
+  public Response getOperRatio() throws SQLException {
+
+    Connection con = getSQLConnection();
+    String query = "select * from OPER_RATIO_BS";
+    PreparedStatement getWorkingDay =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    JSONObject object = new JSONObject();
+    JSONObject con_object = new JSONObject();
+    try {
+      ResultSet data = getWorkingDay.executeQuery();
+      JSONArray res = new JSONArray();
+      Boolean flag = false;
+      float JAN=0, FEB=0, MAR=0, APR=0, MAY=0, JUN=0, JUL=0, AUG=0, SEP=0, OCT=0, NOV=0, DEC=0, CUR_OPR=0, YEAR_OPR=0;
+      int cnt=0;
+      JSONObject item = new JSONObject();
+      item.put("USER_ID", "ID");
+      item.put("USER_NM", "이름");
+      item.put("JAN", "1월");
+      item.put("FEB", "2월");
+      item.put("MAR", "3월");
+      item.put("APR", "4월");
+      item.put("MAY", "5월");
+      item.put("JUN", "6월");
+      item.put("JUL", "7월");
+      item.put("AUG", "8월");
+      item.put("SEP", "9월");
+      item.put("OCT", "10월");
+      item.put("NOV", "11월");
+      item.put("DEC", "12월");
+      item.put("CUR_OPR", "현재 가동률");
+      item.put("YEAR_OPR", "년간 가동률");
+      con_object.put("header",item);
+
+
+      while (data.next()) {
+        if (!flag) flag = true;
+        item = new JSONObject();
+        cnt++;
+        //JAN  FEB        MAR        APR        MAY        JUN        JUL        AUG        SEP        OCT        NOV        DEC    CUR_OPR   YEAR_OPR
+        item.put("USER_ID", data.getString(1));
+        item.put("USER_NM", data.getString(16));
+
+        item.put("JAN", data.getFloat(2));
+        JAN+=data.getFloat(2);
+
+        item.put("FEB", data.getFloat(3));
+        FEB+=data.getFloat(3);
+
+        item.put("MAR", data.getFloat(4));
+        MAR+=data.getFloat(4);
+
+        item.put("APR", data.getFloat(5));
+        APR+=data.getFloat(5);
+
+        item.put("MAY", data.getFloat(6));
+        MAY+=data.getFloat(6);
+
+        item.put("JUN", data.getFloat(7));
+        JUN+=data.getFloat(7);
+
+        item.put("JUL", data.getFloat(8));
+        JUL+=data.getFloat(8);
+
+        item.put("AUG", data.getFloat(9));
+        AUG+=data.getFloat(9);
+
+        item.put("SEP", data.getFloat(10));
+        SEP+=data.getFloat(10);
+
+        item.put("OCT", data.getFloat(11));
+        OCT+=data.getFloat(11);
+
+        item.put("NOV", data.getFloat(12));
+        NOV+=data.getFloat(12);
+
+        item.put("DEC", data.getFloat(13));
+        DEC+=data.getFloat(13);
+
+        item.put("CUR_OPR", data.getFloat(14));
+        CUR_OPR+=data.getFloat(14);
+
+        item.put("YEAR_OPR", data.getFloat(15));
+        YEAR_OPR+=data.getFloat(15);
+
+        res.add(item);
+      }
+
+      if (flag) {
+        con_object.put("op_ratio_list",res);
+
+        item = new JSONObject();
+        item.put("USER_NM", "집계");
+        item.put("JAN", Math.round(JAN/cnt*10)/10.0);
+        item.put("FEB", Math.round(FEB/cnt*10)/10.0);
+        item.put("MAR", Math.round(MAR/cnt*10)/10.0);
+        item.put("APR", Math.round(APR/cnt*10)/10.0);
+        item.put("MAY", Math.round(MAY/cnt*10)/10.0);
+        item.put("JUN", Math.round(JUN/cnt*10)/10.0);
+        item.put("JUL", Math.round(JUL/cnt*10)/10.0);
+        item.put("AUG", Math.round(AUG/cnt*10)/10.0);
+        item.put("SEP", Math.round(SEP/cnt*10)/10.0);
+        item.put("OCT", Math.round(OCT/cnt*10)/10.0);
+        item.put("NOV", Math.round(NOV/cnt*10)/10.0);
+        item.put("DEC", Math.round(DEC/cnt*10)/10.0);
+        item.put("CUR_OPR", Math.round(CUR_OPR/cnt*10)/10.0);
+        item.put("YEAR_OPR", Math.round(YEAR_OPR/cnt*10)/10.0);
+        con_object.put("total",item);
+
+
+        object.put("result", 1);
+        object.put("content", con_object);
+        object.put("msg", "");
+
+        return Response.ok(object).build();
+      } else {
+        object.put("result", 0);
+        object.put("msg", "데이터가 존재하지 않습니다.");
+
+        return Response.ok(object).build();
+      }
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      getWorkingDay.close();
+      con.close();
+
+      object.put("result", 0);
+      object.put("msg", "" + e.getMessage());
+      return Response.ok(object).build();
+    } finally {
+      //Close resources in all cases
+      getWorkingDay.close();
+      con.close();
+    }
+  }
 
   //현재 날짜 시간 구하는 함수
-  public String getCurrentTime(){
+  public String getCurrentTime() {
     Calendar cur = Calendar.getInstance();  // 현재 날짜/시간 등의 각종 정보 얻기
-    String result = ""+cur.get(Calendar.YEAR)+"-"+(cur.get(Calendar.MONTH)+1)+"-"+cur.get(Calendar.DAY_OF_MONTH)+" "+cur.get(Calendar.HOUR_OF_DAY)+":"
-        +cur.get(Calendar.MINUTE);
+    String result =
+        "" + cur.get(Calendar.YEAR) + "-" + (cur.get(Calendar.MONTH) + 1) + "-" + cur.get(
+            Calendar.DAY_OF_MONTH) + " " + cur.get(Calendar.HOUR_OF_DAY) + ":"
+            + cur.get(Calendar.MINUTE);
 
     return result;
   }
 
   //초과 근무 시작 시간에 년 월 일 붙이기
-  public String makeSTime(String date, String time){
+  public String makeSTime(String date, String time) {
 
-    String result = date+" "+time;
+    String result = date + " " + time;
     return result;
   }
 
   //초과 근무 종료시간에 년 월 일 붙이기 -> 하루지나서 까지 일때 -> 하루 + 1
-  public String makeETime(String date, String stime, String etime){
-    String result="";
+  public String makeETime(String date, String stime, String etime) {
+    String result = "";
     String[] dateArr = date.split("-");
     Calendar cal = Calendar.getInstance();
 
-    cal.set(Integer.parseInt(dateArr[0]),Integer.parseInt(dateArr[1])-1,Integer.parseInt(dateArr[2]));
+    cal.set(Integer.parseInt(dateArr[0]), Integer.parseInt(dateArr[1]) - 1,
+        Integer.parseInt(dateArr[2]));
 
     int s_time_hour = Integer.parseInt(stime.split(":")[0]);
     int e_time_hour = Integer.parseInt(etime.split(":")[0]);
 
-    if(s_time_hour > e_time_hour){
-      cal.add(Calendar.DAY_OF_MONTH,1);
+    if (s_time_hour > e_time_hour) {
+      cal.add(Calendar.DAY_OF_MONTH, 1);
     }
 
-    result=cal.get(Calendar.YEAR)+"-"+(cal.get(Calendar.MONTH)+1)+"-"+cal.get(Calendar.DAY_OF_MONTH)+" "+etime;
+    result = cal.get(Calendar.YEAR) + "-" + (cal.get(Calendar.MONTH) + 1) + "-" + cal.get(
+        Calendar.DAY_OF_MONTH) + " " + etime;
 
     return result;
   }
-
-
-
 }
