@@ -756,7 +756,7 @@ public class WorkReportSQLResource {
   @GET
   @Produces("application/json")
   @Path("/getOperRatio")
-  public Response getOperRatio() throws SQLException {
+  public Response getOperRatio(@QueryParam("DEPT_NM")String DEPT_NM, @QueryParam("YEAR")int YEAR) throws SQLException {
 
     Connection con = getSQLConnection();
     String query = "select * from OPER_RATIO_BS";
