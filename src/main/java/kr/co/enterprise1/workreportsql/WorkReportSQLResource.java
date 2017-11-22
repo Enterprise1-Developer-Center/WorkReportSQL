@@ -332,23 +332,31 @@ public class WorkReportSQLResource {
   @GET
   @Produces("application/json")
   @Path("/getProjects")
-  public Response getProjects() throws SQLException {
+  public Response getProjects(@QueryParam("DEPT_NM")String DEPT_NM) throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "SELECT PROJ_CD, PROJ_NM FROM PROJ_INFO";
+    String query = "SELECT PROJ_CD, PROJ_NM, dept_nm FROM PROJ_INFO";
+    String query_dept = "SELECT PROJ_CD, PROJ_NM, dept_nm  FROM PROJ_INFO where dept_nm=? or dept_nm='0'";
+
     PreparedStatement checkLogin =
-        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        DEPT_NM == null?
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY):
+            con.prepareStatement(query_dept, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     JSONArray results = new JSONArray();
     JSONObject object = new JSONObject();
 
-
+    if(DEPT_NM!=null){
+      checkLogin.setString(1,DEPT_NM);
+    }
     try {
       ResultSet data = checkLogin.executeQuery();
       while (data.next()) {
         JSONObject item = new JSONObject();
         item.put("PROJ_CD", data.getString(1));
         item.put("PROJ_NM", data.getString(2));
+        item.put("DEPT_NM", data.getString(3));
+
         results.add(item);
       }
       object.put("result",1);
