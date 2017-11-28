@@ -756,7 +756,8 @@ public class WorkReportSQLResource {
   @GET
   @Produces("application/json")
   @Path("/getOperRatio")
-  public Response getOperRatio(@QueryParam("DEPT_NM")String DEPT_NM, @QueryParam("YEAR")int YEAR) throws SQLException {
+  public Response getOperRatio(@QueryParam("DEPT_NM") String DEPT_NM, @QueryParam("YEAR") int YEAR)
+      throws SQLException {
 
     Connection con = getSQLConnection();
     String query = "select * from OPER_RATIO_BS";
@@ -769,8 +770,9 @@ public class WorkReportSQLResource {
       ResultSet data = getWorkingDay.executeQuery();
       JSONArray res = new JSONArray();
       Boolean flag = false;
-      float JAN=0, FEB=0, MAR=0, APR=0, MAY=0, JUN=0, JUL=0, AUG=0, SEP=0, OCT=0, NOV=0, DEC=0, CUR_OPR=0, YEAR_OPR=0;
-      int cnt=0;
+      float JAN = 0, FEB = 0, MAR = 0, APR = 0, MAY = 0, JUN = 0, JUL = 0, AUG = 0, SEP = 0, OCT =
+          0, NOV = 0, DEC = 0, CUR_OPR = 0, YEAR_OPR = 0;
+      int cnt = 0;
       JSONObject item = new JSONObject();
       item.put("USER_ID", "ID");
       item.put("USER_NM", "이름");
@@ -788,8 +790,7 @@ public class WorkReportSQLResource {
       item.put("DEC", "12월");
       item.put("CUR_OPR", "현재 가동률");
       item.put("YEAR_OPR", "년간 가동률");
-      con_object.put("header",item);
-
+      con_object.put("header", item);
 
       while (data.next()) {
         if (!flag) flag = true;
@@ -800,71 +801,70 @@ public class WorkReportSQLResource {
         item.put("USER_NM", data.getString(16));
 
         item.put("JAN", data.getFloat(2));
-        JAN+=data.getFloat(2);
+        JAN += data.getFloat(2);
 
         item.put("FEB", data.getFloat(3));
-        FEB+=data.getFloat(3);
+        FEB += data.getFloat(3);
 
         item.put("MAR", data.getFloat(4));
-        MAR+=data.getFloat(4);
+        MAR += data.getFloat(4);
 
         item.put("APR", data.getFloat(5));
-        APR+=data.getFloat(5);
+        APR += data.getFloat(5);
 
         item.put("MAY", data.getFloat(6));
-        MAY+=data.getFloat(6);
+        MAY += data.getFloat(6);
 
         item.put("JUN", data.getFloat(7));
-        JUN+=data.getFloat(7);
+        JUN += data.getFloat(7);
 
         item.put("JUL", data.getFloat(8));
-        JUL+=data.getFloat(8);
+        JUL += data.getFloat(8);
 
         item.put("AUG", data.getFloat(9));
-        AUG+=data.getFloat(9);
+        AUG += data.getFloat(9);
 
         item.put("SEP", data.getFloat(10));
-        SEP+=data.getFloat(10);
+        SEP += data.getFloat(10);
 
         item.put("OCT", data.getFloat(11));
-        OCT+=data.getFloat(11);
+        OCT += data.getFloat(11);
 
         item.put("NOV", data.getFloat(12));
-        NOV+=data.getFloat(12);
+        NOV += data.getFloat(12);
 
         item.put("DEC", data.getFloat(13));
-        DEC+=data.getFloat(13);
+        DEC += data.getFloat(13);
 
         item.put("CUR_OPR", data.getFloat(14));
-        CUR_OPR+=data.getFloat(14);
+        CUR_OPR += data.getFloat(14);
 
         item.put("YEAR_OPR", data.getFloat(15));
-        YEAR_OPR+=data.getFloat(15);
+        YEAR_OPR += data.getFloat(15);
 
         res.add(item);
       }
 
       if (flag) {
-        con_object.put("op_ratio_list",res);
+        con_object.put("op_ratio_list", res);
 
         item = new JSONObject();
         item.put("USER_NM", "집계");
-        item.put("JAN", Math.round(JAN/cnt*10)/10.0);
-        item.put("FEB", Math.round(FEB/cnt*10)/10.0);
-        item.put("MAR", Math.round(MAR/cnt*10)/10.0);
-        item.put("APR", Math.round(APR/cnt*10)/10.0);
-        item.put("MAY", Math.round(MAY/cnt*10)/10.0);
-        item.put("JUN", Math.round(JUN/cnt*10)/10.0);
-        item.put("JUL", Math.round(JUL/cnt*10)/10.0);
-        item.put("AUG", Math.round(AUG/cnt*10)/10.0);
-        item.put("SEP", Math.round(SEP/cnt*10)/10.0);
-        item.put("OCT", Math.round(OCT/cnt*10)/10.0);
-        item.put("NOV", Math.round(NOV/cnt*10)/10.0);
-        item.put("DEC", Math.round(DEC/cnt*10)/10.0);
-        item.put("CUR_OPR", Math.round(CUR_OPR/cnt*10)/10.0);
-        item.put("YEAR_OPR", Math.round(YEAR_OPR/cnt*10)/10.0);
-        con_object.put("total",item);
-
+        item.put("JAN", Math.round(JAN / cnt * 10) / 10.0);
+        item.put("FEB", Math.round(FEB / cnt * 10) / 10.0);
+        item.put("MAR", Math.round(MAR / cnt * 10) / 10.0);
+        item.put("APR", Math.round(APR / cnt * 10) / 10.0);
+        item.put("MAY", Math.round(MAY / cnt * 10) / 10.0);
+        item.put("JUN", Math.round(JUN / cnt * 10) / 10.0);
+        item.put("JUL", Math.round(JUL / cnt * 10) / 10.0);
+        item.put("AUG", Math.round(AUG / cnt * 10) / 10.0);
+        item.put("SEP", Math.round(SEP / cnt * 10) / 10.0);
+        item.put("OCT", Math.round(OCT / cnt * 10) / 10.0);
+        item.put("NOV", Math.round(NOV / cnt * 10) / 10.0);
+        item.put("DEC", Math.round(DEC / cnt * 10) / 10.0);
+        item.put("CUR_OPR", Math.round(CUR_OPR / cnt * 10) / 10.0);
+        item.put("YEAR_OPR", Math.round(YEAR_OPR / cnt * 10) / 10.0);
+        con_object.put("total", item);
 
         object.put("result", 1);
         object.put("content", con_object);
@@ -894,8 +894,6 @@ public class WorkReportSQLResource {
     }
   }
 
-
-
   //집계TOT가져오기
   @GET
   @Produces("application/json")
@@ -912,24 +910,61 @@ public class WorkReportSQLResource {
     try {
       getWorkingDay.setString(1, DEPT_NM);
       ResultSet data = getWorkingDay.executeQuery();
-      JSONObject item = new JSONObject();
-      Boolean flag = false;
+      JSONObject item;
+      JSONArray arr = new JSONArray();
 
-      if(data.first()){
+      if (data.first()) {
 
-        item.put("DEPT_NM", data.getString(1));
-        item.put("PROFITS", data.getString(2));
-        item.put("INVEST", data.getString(3));
-        item.put("LOSS", data.getString(4));
-        item.put("SUPPORT", data.getString(5));
-        item.put("EDUCATE", data.getString(6));
-        item.put("PROPOSAL", data.getString(7));
-        item.put("VACATIONETC", data.getString(8));
-        item.put("HOLIDAYWORK", data.getString(9));
-        item.put("TOTAL", data.getString(10));
+
+        item = new JSONObject();
+        item.put("name","PROFITS");
+        item.put("value", data.getInt(2));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","INVEST");
+        item.put("value", data.getInt(3));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","LOSS");
+        item.put("value", data.getInt(4));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","SUPPORT");
+        item.put("value", data.getInt(5));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","EDUCATE");
+        item.put("value", data.getInt(6));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","PROPOSAL");
+        item.put("value", data.getInt(7));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","VACATIONETC");
+        item.put("value", data.getInt(8));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","HOLIDAYWORK");
+        item.put("value", data.getInt(9));
+        arr.add(item);
+
+        item = new JSONObject();
+        item.put("name","TOTAL");
+        item.put("value", data.getInt(10));
+        arr.add(item);
+
+
 
         object.put("result", 1);
-        object.put("content", item);
+        object.put("content", arr);
         object.put("msg", "");
 
         return Response.ok(object).build();
@@ -955,7 +990,6 @@ public class WorkReportSQLResource {
       con.close();
     }
   }
-
 
   //현재 날짜 시간 구하는 함수
   public String getCurrentTime() {
