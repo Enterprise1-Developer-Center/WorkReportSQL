@@ -894,6 +894,69 @@ public class WorkReportSQLResource {
     }
   }
 
+
+
+  //집계TOT가져오기
+  @GET
+  @Produces("application/json")
+  @Path("/getWorkingDayTOT")
+  public Response getWorkingDayTOT(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
+
+    Connection con = getSQLConnection();
+    String query = "select * from WORK_TOT where DEPT_NM=?";
+    PreparedStatement getWorkingDay =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    JSONObject object = new JSONObject();
+
+    try {
+      getWorkingDay.setString(1, DEPT_NM);
+      ResultSet data = getWorkingDay.executeQuery();
+      JSONObject item = new JSONObject();
+      Boolean flag = false;
+
+      if(data.first()){
+
+        item.put("DEPT_NM", data.getString(1));
+        item.put("PROFITS", data.getString(2));
+        item.put("INVEST", data.getString(3));
+        item.put("LOSS", data.getString(4));
+        item.put("SUPPORT", data.getString(5));
+        item.put("EDUCATE", data.getString(6));
+        item.put("PROPOSAL", data.getString(7));
+        item.put("VACATIONETC", data.getString(8));
+        item.put("HOLIDAYWORK", data.getString(9));
+        item.put("TOTAL", data.getString(10));
+
+        object.put("result", 1);
+        object.put("content", item);
+        object.put("msg", "");
+
+        return Response.ok(object).build();
+      } else {
+        object.put("result", 0);
+        object.put("msg", "부서명을 정확하게 입력해주세요.");
+
+        return Response.ok(object).build();
+      }
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+      logger.log(Level.INFO, e.getMessage(), e);
+      e.printStackTrace();
+      getWorkingDay.close();
+      con.close();
+
+      object.put("result", 0);
+      object.put("msg", "" + e.getMessage());
+      return Response.ok(object).build();
+    } finally {
+      //Close resources in all cases
+      getWorkingDay.close();
+      con.close();
+    }
+  }
+
+
   //현재 날짜 시간 구하는 함수
   public String getCurrentTime() {
     Calendar cur = Calendar.getInstance();  // 현재 날짜/시간 등의 각종 정보 얻기
