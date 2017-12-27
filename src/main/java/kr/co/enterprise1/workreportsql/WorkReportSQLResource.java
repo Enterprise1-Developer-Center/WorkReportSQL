@@ -898,14 +898,14 @@ public class WorkReportSQLResource {
     @GET
     @Produces("application/json")
     @Path("/getSummaryTotal")
-    public Response getSummaryTotal(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
+    public Response getSummaryTotal(@QueryParam("DEPT_NM") String dept_nm, @QueryParam("YEAR") int year) throws SQLException {
         Connection con = getSQLConnection();
         String query =
                 "WITH DET_TMP AS(\n" +
                         "        SELECT A.LCLS_CD\n" +
                         "             , COUNT(1) AS CNT\n" +
                         "        FROM WORK_DETAIL A\n" +
-                        "        WHERE A.WORK_YMD BETWEEN '2017' || '0101' AND '2017' || '1231'\n" +
+                        "        WHERE A.WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
                         "        GROUP BY A.LCLS_CD\n" +
                         ")\n" +
                         "SELECT L.LCLS_NM\n" +
