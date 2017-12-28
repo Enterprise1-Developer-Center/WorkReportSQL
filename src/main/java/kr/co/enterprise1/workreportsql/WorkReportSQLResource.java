@@ -948,19 +948,36 @@ public class WorkReportSQLResource {
     @Produces("application/json")
     @Path("/getAvailableStatisticsYear")
     public Response getAvailableStatisticsYear() throws SQLException {
+        Connection con = getSQLConnection();
+        String query = "SELECT DISTINCT SUBSTR(TO_CHAR(WORK_YMD,'YYYYMMDD'),0,4) AS YEAR" +
+                "        FROM WORK_DETAIL" +
+                "        ORDER BY 1";
+
+        PreparedStatement preparedStatement =
+                con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
         JSONArray array = new JSONArray();
-        array.add("2016");
-        array.add("2017");
-        array.add("2018");
-        array.add("2019");
-        array.add("2020");
-
         JSONObject object = new JSONObject();
-        object.put("result", 1);
-        object.put("content", array);
-        object.put("msg", "");
+        try {
+            ResultSet data = preparedStatement.executeQuery();
+            while (data.next()) {
+                array.add(data.getString(1));
+            }
+            object.put("result", 1);
+            object.put("content", array);
+            object.put("msg", "");
 
+        }catch(Exception e) {
+            logger.info(e.getMessage());
+            e.printStackTrace();
+            object.put("result", 0);
+            object.put("content", array);
+            object.put("msg", e.getMessage());
+            return Response.ok(object).build();
+        } finally {
+            preparedStatement.close();
+            con.close();
+        }
         return Response.ok(object).build();
     }
 
