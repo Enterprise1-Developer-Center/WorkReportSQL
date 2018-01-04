@@ -10,30 +10,22 @@ package kr.co.enterprise1.workreportsql;
 import com.ibm.json.java.JSONArray;
 import com.ibm.json.java.JSONObject;
 import com.ibm.mfp.adapter.api.AdaptersAPI;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-
-import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.ibm.mfp.adapter.api.ConfigurationAPI;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-
-import com.ibm.mfp.adapter.api.ConfigurationAPI;
-import com.ibm.mfp.adapter.api.OAuthSecurity;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Path("/")
 public class WorkReportSQLResource {
@@ -383,15 +375,19 @@ public class WorkReportSQLResource {
                                   @QueryParam("date") String date
     ) throws SQLException {
 
-        Connection con = getSQLConnection();
-        String query = "SELECT w.USER_ID,"
+        Connection connection = getSQLConnection();
+        PreparedStatement preparedStatement;
+        String query;
+
+        query = "SELECT"
+                + " w.USER_ID,"
                 + " w.USER_NM,"
                 + " w.DEPT_NM,"
                 + " to_char( w.WORK_YMD, 'YYYY-MM-DD')  WORK_YMD,"
                 + " w.MCLS_CD,"
                 + " w.DETAIL,"
                 + " p.PROJ_CD,"
-                + " p.PROJ_NM PROJ_NM,"
+                + " p.PROJ_NM," // PROJ_NM
                 + " to_char(w.S_TIME, 'hh24:mi') S_TIME,"
                 + " to_char(w.E_TIME, 'hh24:mi') E_TIME,"
                 + " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,"
@@ -400,18 +396,26 @@ public class WorkReportSQLResource {
                 + "WHERE w.PRJ_CD = p.PROJ_CD "
                 + "and w.USER_ID =? "
                 + "and to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
-        PreparedStatement getWorkingDay =
-                con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        try {
+            preparedStatement =
+                    connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
+        } catch (Exception e) {
+            preparedStatement = null;
+            logger.info("error = " + e.getMessage());
+        }
         JSONObject object = new JSONObject();
         JSONObject item = new JSONObject();
         JSONObject MCLS = new JSONObject();
         JSONObject PROJ = new JSONObject();
-        try {
-            getWorkingDay.setString(1, userId);
-            getWorkingDay.setString(2, date);
 
-            ResultSet data = getWorkingDay.executeQuery();
+        try {
+            preparedStatement.setString(1, userId);
+            preparedStatement.setString(2, date);
+
+            ResultSet data = preparedStatement.executeQuery();
+            logger.info("userId = " + userId);
+            logger.info("date = " + date);
 
             if (data.first()) {
                 object.put("result", 1);
@@ -448,15 +452,15 @@ public class WorkReportSQLResource {
             logger.info(e.getMessage());
             logger.log(Level.INFO, e.getMessage(), e);
             e.printStackTrace();
-            getWorkingDay.close();
-            con.close();
+            preparedStatement.close();
+            connection.close();
             object.put("result", 0);
             object.put("msg", "" + e.getMessage());
             return Response.ok(object).build();
         } finally {
             //Close resources in all cases
-            getWorkingDay.close();
-            con.close();
+            preparedStatement.close();
+            connection.close();
         }
     }
 
@@ -900,21 +904,23 @@ public class WorkReportSQLResource {
     @Path("/getSummaryTotal")
     public Response getSummaryTotal(@QueryParam("DEPT_NM") String dept_nm, @QueryParam("YEAR") int year) throws SQLException {
         Connection con = getSQLConnection();
-        String query =
-                "WITH DET_TMP AS(\n" +
-                        "        SELECT A.LCLS_CD\n" +
-                        "             , COUNT(1) AS CNT\n" +
-                        "        FROM WORK_DETAIL A\n" +
-                        "        WHERE A.WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
-                        "        GROUP BY A.LCLS_CD\n" +
-                        ")\n" +
-                        "SELECT L.LCLS_NM\n" +
-                        "     , L.LCLS_CD\n" +
-                        "     , NVL(D.CNT,0) AS CNT \n" +
-                        "  FROM WORK_LCLASS L\n" +
-                        "     , DET_TMP D\n" +
-                        "WHERE L.LCLS_CD = D.LCLS_CD(+)\n" +
-                        "ORDER BY L.LCLS_CD";
+        String query = "WITH DET_TMP AS(" +
+                "        SELECT A.LCLS_CD" +
+                "              , COUNT(1) AS CNT" +
+                "          FROM WORK_DETAIL A" +
+                "             , USER_INFO B" +
+                "         WHERE A.USER_ID = B.USER_ID" +
+                "           AND A.WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'" +
+                "           AND B.DEPT_CD = '2'" +
+                "         GROUP BY A.LCLS_CD" +
+                "        ) " +
+                "SELECT L.LCLS_NM" +
+                "     , L.LCLS_CD" +
+                "     , NVL(D.CNT, 0 ) AS CNT" +
+                "  FROM WORK_LCLASS L" +
+                "      , DET_TMP D" +
+                " WHERE L.LCLS_CD = D.LCLS_CD(+)" +
+                " ORDER BY L.LCLS_CD";
         PreparedStatement preparedStatement =
                 con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         JSONObject object = new JSONObject();
@@ -967,7 +973,7 @@ public class WorkReportSQLResource {
             object.put("content", array);
             object.put("msg", "");
 
-        }catch(Exception e) {
+        } catch (Exception e) {
             logger.info(e.getMessage());
             e.printStackTrace();
             object.put("result", 0);
@@ -977,6 +983,60 @@ public class WorkReportSQLResource {
         } finally {
             preparedStatement.close();
             con.close();
+        }
+        return Response.ok(object).build();
+    }
+
+    @GET
+    @Produces("application/json")
+    @Path("/getCreateDbYear")
+    public Response getCreateDbYear() throws SQLException {
+
+        JSONObject object = new JSONObject();
+        JSONObject contentsObj = new JSONObject();
+        int year = Calendar.getInstance().get(Calendar.YEAR);
+        int minYear = year - 3;
+        int maxYear = year + 50;
+
+        try {
+            contentsObj.put("year", year);
+            contentsObj.put("minYear", minYear);
+            contentsObj.put("maxYear", maxYear);
+
+            object.put("result", 1);
+            object.put("content", contentsObj);
+            object.put("msg", "");
+
+        } catch (Exception e) {
+            logger.info(e.getMessage());
+            e.printStackTrace();
+            object.put("result", 0);
+            object.put("content", contentsObj);
+            object.put("msg", e.getMessage());
+            return Response.ok(object).build();
+        }
+        return Response.ok(object).build();
+    }
+
+    @POST
+    @Produces("application/json")
+    @Path("/createWorkCalendarDb")
+    public Response createWorkCalendarDb(@FormParam("YEAR") int year, @FormParam("DEPT_NM") String deptNm) throws SQLException {
+
+        JSONObject object = new JSONObject();
+
+        try {
+            object.put("result", 1);
+            object.put("content", year + ", " + deptNm);
+            object.put("msg", year + " WORK_CALENDAR를 생성하였습니다.");
+
+        } catch (Exception e) {
+            logger.info(e.getMessage());
+            e.printStackTrace();
+            object.put("result", 0);
+            object.put("content", null);
+            object.put("msg", e.getMessage());
+            return Response.ok(object).build();
         }
         return Response.ok(object).build();
     }
