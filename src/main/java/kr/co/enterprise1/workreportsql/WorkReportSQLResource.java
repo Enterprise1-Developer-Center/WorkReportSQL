@@ -1021,13 +1021,13 @@ public class WorkReportSQLResource {
     @POST
     @Produces("application/json")
     @Path("/createWorkCalendarDb")
-    public Response createWorkCalendarDb(@FormParam("YEAR") int year, @FormParam("DEPT_NM") String deptNm) throws SQLException {
+    public Response createWorkCalendarDb(@FormParam("YEAR") int year, @FormParam("USER_ID") String userId) throws SQLException {
 
         JSONObject object = new JSONObject();
 
         try {
             object.put("result", 1);
-            object.put("content", year + ", " + deptNm);
+            object.put("content", year + ", " + userId);
             object.put("msg", year + " WORK_CALENDAR를 생성하였습니다.");
 
         } catch (Exception e) {
