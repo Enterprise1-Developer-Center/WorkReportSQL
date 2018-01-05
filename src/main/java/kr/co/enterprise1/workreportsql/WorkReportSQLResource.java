@@ -393,7 +393,7 @@ public class WorkReportSQLResource {
                 + " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,"
                 + "to_char(w.UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME"
                 + " FROM WORK_DETAIL w, PROJ_INFO p "
-                + "WHERE w.PRJ_CD = p.PROJ_CD "
+                + "WHERE w.PROJ_CD = p.PROJ_CD "
                 + "and w.USER_ID =? "
                 + "and to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
         try {
@@ -470,7 +470,7 @@ public class WorkReportSQLResource {
     @Path("/updateWorkingDay")
     public Response updateWorkingDay(@FormParam("LCLS_CD") String LCLS_CD,
                                      @FormParam("MCLS_CD") String MCLS_CD, @FormParam("DETAIL") String DETAIL,
-                                     @FormParam("PRJ_CD") String PRJ_CD, @FormParam("S_TIME") String S_TIME,
+                                     @FormParam("PROJ_CD") String PROJ_CD, @FormParam("S_TIME") String S_TIME,
                                      @FormParam("E_TIME") String E_TIME, @FormParam("USER_ID") String USER_ID,
                                      @FormParam("date") String date
     ) throws SQLException {
@@ -480,7 +480,7 @@ public class WorkReportSQLResource {
                 + "LCLS_CD=?,"
                 + "MCLS_CD=?,"
                 + "DETAIL=?,"
-                + "PRJ_CD=?,"
+                + "PROJ_CD=?,"
                 + "S_TIME=to_date(?,'yyyy-mm-dd HH24:MI'),"
                 + "E_TIME=to_date(?,'yyyy-mm-dd HH24:MI'),"
                 + "EXTRA_TIME = "
@@ -505,7 +505,7 @@ public class WorkReportSQLResource {
             updateWorkingDay.setString(1, LCLS_CD);
             updateWorkingDay.setString(2, MCLS_CD);
             updateWorkingDay.setString(3, DETAIL);
-            updateWorkingDay.setString(4, PRJ_CD);
+            updateWorkingDay.setString(4, PROJ_CD);
             updateWorkingDay.setString(5, s_time);
             updateWorkingDay.setString(6, e_time);
             updateWorkingDay.setString(7, e_time);
@@ -533,7 +533,7 @@ public class WorkReportSQLResource {
                         + " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,"
                         + "to_char(w.UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME"
                         + " FROM WORK_DETAIL w, PROJ_INFO p "
-                        + "WHERE w.PRJ_CD = p.PROJ_CD "
+                        + "WHERE w.PROJ_CD = p.PROJ_CD "
                         + "and w.USER_ID =? "
                         + "and to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
                 PreparedStatement getWorkingDay =
@@ -700,7 +700,7 @@ public class WorkReportSQLResource {
 
         Connection con = getSQLConnection();
         String query =
-                "select  w.user_id, w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.prj_cd=p.proj_cd "
+                "select  w.user_id, w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.PROJ_CD=p.proj_cd "
                         + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd') "
                         + "and w.dept_nm=?";
         PreparedStatement getWorkingDay =
