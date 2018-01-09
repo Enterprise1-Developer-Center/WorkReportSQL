@@ -16,10 +16,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -32,6 +29,8 @@ public class WorkReportSQLResource {
     /*
      * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
   */
+    public final static int RESULT_SUCCESS = 1;
+    public final static int RESULT_FAILURE = 0;
 
     static Logger logger = Logger.getLogger(WorkReportSQLApplication.class.getName());
 
@@ -114,7 +113,6 @@ public class WorkReportSQLResource {
             //Close resources in all cases
             getUser.close();
             con.close();
-            logger.info("getUser.close(), con.close()");
         }
     }
 
@@ -377,25 +375,25 @@ public class WorkReportSQLResource {
 
         Connection connection = getSQLConnection();
         PreparedStatement preparedStatement;
-        String query;
 
-        query = "SELECT"
-                + " w.USER_ID,"
-                + " w.USER_NM,"
-                + " w.DEPT_NM,"
-                + " to_char( w.WORK_YMD, 'YYYY-MM-DD')  WORK_YMD,"
-                + " w.MCLS_CD,"
-                + " w.DETAIL,"
-                + " p.PROJ_CD,"
-                + " p.PROJ_NM," // PROJ_NM
-                + " to_char(w.S_TIME, 'hh24:mi') S_TIME,"
-                + " to_char(w.E_TIME, 'hh24:mi') E_TIME,"
-                + " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,"
-                + "to_char(w.UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME"
-                + " FROM WORK_DETAIL w, PROJ_INFO p "
-                + "WHERE w.PROJ_CD = p.PROJ_CD "
-                + "and w.USER_ID =? "
-                + "and to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
+        String query = "SELECT\n" +
+                " w.USER_ID,\n" +
+                " a.USER_NM,\n" +
+                " (SELECT DEPT_NM FROM DEPT_INFO WHERE DEPT_CD = a.DEPT_CD) AS DEPT_NM,\n" +
+                " to_char( w.WORK_YMD, 'YYYY-MM-DD')  WORK_YMD,\n" +
+                " w.MCLS_CD,\n" +
+                " w.DETAIL,\n" +
+                " p.PROJ_CD,\n" +
+                " p.PROJ_NM,\n" +
+                " to_char(w.S_TIME, 'hh24:mi') S_TIME,\n" +
+                " to_char(w.E_TIME, 'hh24:mi') E_TIME,\n" +
+                " to_char(w.EXTRA_TIME, 'hh24:mi') EXTRA_TIME,\n" +
+                " to_char(w.UPD_TIME, 'yyyy-mm-dd hh24:mi') UPD_TIME\n" +
+                " FROM USER_INFO a, WORK_DETAIL w, PROJ_INFO p\n" +
+                "WHERE a.USER_ID = w.USER_ID\n" +
+                "  AND w.PROJ_CD = p.PROJ_CD\n" +
+                "  AND w.USER_ID =?\n" +
+                "  AND to_char(w.WORK_YMD,'yyyy-mm-dd') = ?";
         try {
             preparedStatement =
                     connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -699,10 +697,20 @@ public class WorkReportSQLResource {
     public Response getSummary(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
 
         Connection con = getSQLConnection();
-        String query =
-                "select  w.user_id, w.user_nm, p.proj_nm, w.mcls_cd, w.detail  from work_detail w, PROJ_INFO p where w.PROJ_CD=p.proj_cd "
-                        + "and to_char(work_ymd,'yyyy-mm-dd')=to_char(sysdate,'yyyy-mm-dd') "
-                        + "and w.dept_nm=?";
+        String query = "SELECT W.USER_ID\n" +
+                "     , A.USER_NM\n" +
+                "     , P.PROJ_NM\n" +
+                "     , W.MCLS_CD\n" +
+                "     , W.DETAIL\n" +
+                "  FROM USER_INFO A\n" +
+                "     , DEPT_INFO B\n" +
+                "     , WORK_DETAIL W\n" +
+                "     , PROJ_INFO P\n" +
+                " WHERE A.USER_ID = W.USER_ID\n" +
+                "   AND A.DEPT_CD = B.DEPT_CD\n" +
+                "   AND W.PROJ_CD = P.PROJ_CD\n" +
+                "   AND TO_CHAR(W.WORK_YMD, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')\n" +
+                "   AND B.DEPT_NM =?\n";
         PreparedStatement getWorkingDay =
                 con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -898,6 +906,155 @@ public class WorkReportSQLResource {
         }
     }
 
+    //가동률 통계표 가져오기
+    @GET
+    @Produces("application/json")
+    @Path("/getDetailOperationRate")
+    public Response getDetailOperationRate(@QueryParam("DEPT_NM") String DEPT_NM, @QueryParam("YEAR") int year)
+            throws SQLException {
+
+        Connection connection = getSQLConnection();
+        String query = "SELECT * FROM TABLE(WORK_STRU.WORK_STRU_TB('" + year + "'))";
+        PreparedStatement preparedStatement =
+                connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+        JSONObject resultJson = new JSONObject();
+        JSONArray items = new JSONArray();
+        boolean isResultSet = false;
+        while (resultSet.next()) {
+            isResultSet = true;
+            JSONObject item = new JSONObject();
+            item.put("user_id", resultSet.getString(1));
+            item.put("user_nm", resultSet.getString(2));
+
+            item.put("m1", resultSet.getString(3));
+            item.put("m2", resultSet.getString(4));
+            item.put("m3", resultSet.getString(5));
+            item.put("m4", resultSet.getString(6));
+            item.put("m5", resultSet.getString(7));
+            item.put("m6", resultSet.getString(8));
+            item.put("m7", resultSet.getString(9));
+            item.put("m8", resultSet.getString(10));
+            item.put("m9", resultSet.getString(11));
+            item.put("m10", resultSet.getString(12));
+            item.put("m11", resultSet.getString(13));
+            item.put("m12", resultSet.getString(14));
+
+            item.put("nowsum", resultSet.getString(15));
+            item.put("totsum", resultSet.getString(16));
+            items.add(item);
+        }
+
+        if (isResultSet) {
+            resultJson.put("result", RESULT_SUCCESS);
+            resultJson.put("content", items);
+            resultJson.put("msg", "");
+        } else {
+            resultJson.put("result", RESULT_FAILURE);
+            resultJson.put("content", items);
+            resultJson.put("msg", "데이터가 존재하지 않습니다.");
+        }
+
+        connection.close();
+        preparedStatement.close();
+
+        return Response.ok(resultJson).build();
+    }
+
+    //연간 가동률
+    @GET
+    @Produces("application/json")
+    @Path("/getYearOperatingRatio")
+    public Response getYearOperatingRatio(@QueryParam("DEPT_NM") String deptNm, @QueryParam("YEAR") int year)
+            throws SQLException {
+
+        Connection con = getSQLConnection();
+        String query = "WITH MON_TMP AS (  \n" +
+                "        SELECT A.MON\n" +
+                "             , D_CNT-H_CNT AS W_DAY\n" +
+                "          FROM (  \n" +
+                "                SELECT SUBSTR(WORK_YMD, 5,2) AS MON, COUNT(1) AS D_CNT\n" +
+                "                  FROM WORK_CALENDAR\n" +
+                "                 WHERE WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
+                "                GROUP BY SUBSTR(WORK_YMD, 5,2)\n" +
+                "               ) A,\n" +
+                "                (\n" +
+                "                SELECT SUBSTR(WORK_YMD, 5,2) AS MON, COUNT(1) AS H_CNT\n" +
+                "                  FROM HOLIDAY\n" +
+                "                 WHERE WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
+                "                GROUP BY SUBSTR(WORK_YMD, 5,2)\n" +
+                "               ) B\n" +
+                "          WHERE A.MON = B.MON\n" +
+                "    ),\n" +
+                "    USER_TMP AS(\n" +
+                "    SELECT  USER_ID\n" +
+                "          , TO_CHAR(WORK_YMD, 'MM') AS MON\n" +
+                "          , COUNT(1) AS W_CNT\n" +
+                "     FROM WORK_DETAIL\n" +
+                "    WHERE TO_CHAR(WORK_YMD, 'YYYYMMDD') BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
+                "     AND LCLS_CD = '1' AND MCLS_CD = '11'\n" +
+                "     GROUP BY USER_ID, TO_CHAR(WORK_YMD, 'MM')\n" +
+                "    )\n" +
+                "    SELECT MON\n" +
+                "         , ROUND(SUM(W_CNT)/SUM(W_DAY) * 100, 1) AS MON_RATE\n" +
+                "         , AVG(ROUND(SUM(W_CNT)/SUM(W_DAY) * 100, 1)) OVER() AS TOT_RATE\n" +
+                "      FROM (\n" +
+                "                SELECT A.USER_ID\n" +
+                "                     , A.MON\n" +
+                "                     , A.W_CNT\n" +
+                "                     , B.W_DAY\n" +
+                "                  FROM USER_TMP A\n" +
+                "                     , MON_TMP B\n" +
+                "                 WHERE A.MON = B.MON\n" +
+                "            )\n" +
+                "      GROUP BY MON\n" +
+                "      ORDER BY MON";
+
+        PreparedStatement getWorkingDay =
+                con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+        JSONObject object = new JSONObject();
+
+        try {
+            ResultSet data = getWorkingDay.executeQuery();
+            JSONArray items = new JSONArray();
+            boolean flag = false;
+            while (data.next()) {
+                flag = true;
+                JSONObject item = new JSONObject();
+                item.put("mon", data.getString(1));
+                item.put("mon_rate", data.getString(2));
+                item.put("tot_rate", data.getString(3));
+                items.add(item);
+            }
+            if (flag) {
+                object.put("result", 1);
+                object.put("content", items);
+                object.put("msg", "Great!");
+            } else {
+                object.put("result", 0);
+                object.put("msg", "데이터가 존재하지 않습니다.");
+            }
+
+            return Response.ok(object).build();
+        } catch (Exception e) {
+            logger.info(e.getMessage());
+            logger.log(Level.INFO, e.getMessage(), e);
+            e.printStackTrace();
+            getWorkingDay.close();
+            con.close();
+
+            object.put("result", 0);
+            object.put("msg", "" + e.getMessage());
+            return Response.ok(object).build();
+        } finally {
+            //Close resources in all cases
+            getWorkingDay.close();
+            con.close();
+        }
+    }
+
     // 요약 집계
     @GET
     @Produces("application/json")
@@ -1022,22 +1179,24 @@ public class WorkReportSQLResource {
     @Produces("application/json")
     @Path("/createWorkCalendarDb")
     public Response createWorkCalendarDb(@FormParam("YEAR") int year, @FormParam("USER_ID") String userId) throws SQLException {
-
+        String query = "{call MOBILE.INSERT_YEAR_WORK_DAY_SP(?,?)}";
+        userId = "SYSTEM";
         JSONObject object = new JSONObject();
-
         try {
-            object.put("result", 1);
-            object.put("content", year + ", " + userId);
-            object.put("msg", year + " WORK_CALENDAR를 생성하였습니다.");
+            Connection connection = getSQLConnection();
+            CallableStatement cstmt = connection.prepareCall(query);
+            cstmt.setString(1, String.valueOf(year));
+            cstmt.setString(2, userId);
+            cstmt.execute();
 
+            object.put("result", 1);
+            object.put("msg", year + " WORK_CALENDAR를 생성하였습니다.");
         } catch (Exception e) {
-            logger.info(e.getMessage());
             e.printStackTrace();
             object.put("result", 0);
-            object.put("content", null);
             object.put("msg", e.getMessage());
-            return Response.ok(object).build();
         }
+
         return Response.ok(object).build();
     }
 
