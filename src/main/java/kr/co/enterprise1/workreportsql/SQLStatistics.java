@@ -99,20 +99,18 @@ public class SQLStatistics {
     @GET
     @Produces("application/json")
     @Path("/getDetailOperationRate")
-    public Response getDetailOperationRate(@QueryParam("DEPT_NM") String DEPT_NM, @QueryParam("YEAR") int year)
+    public Response getDetailOperationRate(@QueryParam("YEAR") int year, @QueryParam("DEPT_CD") int code)
             throws SQLException {
-
-        Connection connection = getSQLConnection();
-        String query = "SELECT * FROM TABLE(WORK_STRU.WORK_STRU_TB('" + year + "'))";
-        PreparedStatement preparedStatement =
-                connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
-        ResultSet resultSet = preparedStatement.executeQuery();
-        JSONObject resultJson = new JSONObject();
-        JSONArray items = new JSONArray();
-        boolean isResultSet = false;
+        final Connection connection = getSQLConnection();
+        final String sql = "SELECT * FROM TABLE(WORK_STRU.WORK_STRU_TB('" + year + "', '" + code + "'))";
+        final PreparedStatement preparedStatement =
+                connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        final ResultSet resultSet = preparedStatement.executeQuery();
+        final JSONObject resultJson = new JSONObject();
+        final JSONArray items = new JSONArray();
+        boolean isResult = false;
         while (resultSet.next()) {
-            isResultSet = true;
+            isResult = true;
             JSONObject item = new JSONObject();
             item.put("user_id", resultSet.getString(1));
             item.put("user_nm", resultSet.getString(2));
@@ -135,7 +133,7 @@ public class SQLStatistics {
             items.add(item);
         }
 
-        if (isResultSet) {
+        if (isResult) {
             resultJson.put("result", Constants.RESULT_SUCCESS);
             resultJson.put("content", items);
             resultJson.put("msg", "");
@@ -202,147 +200,6 @@ public class SQLStatistics {
         }
     }
 
-    //가동률 통계표 가져오기
-    @GET
-    @Produces("application/json")
-    @Path("/getOperRatio")
-    public Response getOperRatio(@QueryParam("DEPT_NM") String DEPT_NM, @QueryParam("YEAR") int YEAR)
-            throws SQLException {
-
-        Connection con = getSQLConnection();
-        String query = "select * from OPER_RATIO_BS";
-        PreparedStatement getWorkingDay =
-                con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
-        JSONObject object = new JSONObject();
-        JSONObject con_object = new JSONObject();
-        try {
-            ResultSet data = getWorkingDay.executeQuery();
-            JSONArray res = new JSONArray();
-            Boolean flag = false;
-            float JAN = 0, FEB = 0, MAR = 0, APR = 0, MAY = 0, JUN = 0, JUL = 0, AUG = 0, SEP = 0, OCT =
-                    0, NOV = 0, DEC = 0, CUR_OPR = 0, YEAR_OPR = 0;
-            int cnt = 0;
-            JSONObject item = new JSONObject();
-            item.put("USER_ID", "ID");
-            item.put("USER_NM", "이름");
-            item.put("JAN", "1월");
-            item.put("FEB", "2월");
-            item.put("MAR", "3월");
-            item.put("APR", "4월");
-            item.put("MAY", "5월");
-            item.put("JUN", "6월");
-            item.put("JUL", "7월");
-            item.put("AUG", "8월");
-            item.put("SEP", "9월");
-            item.put("OCT", "10월");
-            item.put("NOV", "11월");
-            item.put("DEC", "12월");
-            item.put("CUR_OPR", "현재 가동률");
-            item.put("YEAR_OPR", "년간 가동률");
-            con_object.put("header", item);
-
-            while (data.next()) {
-                if (!flag) flag = true;
-                item = new JSONObject();
-                cnt++;
-                //JAN  FEB        MAR        APR        MAY        JUN        JUL        AUG        SEP        OCT        NOV        DEC    CUR_OPR   YEAR_OPR
-                item.put("USER_ID", data.getString(1));
-                item.put("USER_NM", data.getString(16));
-
-                item.put("JAN", data.getFloat(2));
-                JAN += data.getFloat(2);
-
-                item.put("FEB", data.getFloat(3));
-                FEB += data.getFloat(3);
-
-                item.put("MAR", data.getFloat(4));
-                MAR += data.getFloat(4);
-
-                item.put("APR", data.getFloat(5));
-                APR += data.getFloat(5);
-
-                item.put("MAY", data.getFloat(6));
-                MAY += data.getFloat(6);
-
-                item.put("JUN", data.getFloat(7));
-                JUN += data.getFloat(7);
-
-                item.put("JUL", data.getFloat(8));
-                JUL += data.getFloat(8);
-
-                item.put("AUG", data.getFloat(9));
-                AUG += data.getFloat(9);
-
-                item.put("SEP", data.getFloat(10));
-                SEP += data.getFloat(10);
-
-                item.put("OCT", data.getFloat(11));
-                OCT += data.getFloat(11);
-
-                item.put("NOV", data.getFloat(12));
-                NOV += data.getFloat(12);
-
-                item.put("DEC", data.getFloat(13));
-                DEC += data.getFloat(13);
-
-                item.put("CUR_OPR", data.getFloat(14));
-                CUR_OPR += data.getFloat(14);
-
-                item.put("YEAR_OPR", data.getFloat(15));
-                YEAR_OPR += data.getFloat(15);
-
-                res.add(item);
-            }
-
-            if (flag) {
-                con_object.put("op_ratio_list", res);
-
-                item = new JSONObject();
-                item.put("USER_NM", "집계");
-                item.put("JAN", Math.round(JAN / cnt * 10) / 10.0);
-                item.put("FEB", Math.round(FEB / cnt * 10) / 10.0);
-                item.put("MAR", Math.round(MAR / cnt * 10) / 10.0);
-                item.put("APR", Math.round(APR / cnt * 10) / 10.0);
-                item.put("MAY", Math.round(MAY / cnt * 10) / 10.0);
-                item.put("JUN", Math.round(JUN / cnt * 10) / 10.0);
-                item.put("JUL", Math.round(JUL / cnt * 10) / 10.0);
-                item.put("AUG", Math.round(AUG / cnt * 10) / 10.0);
-                item.put("SEP", Math.round(SEP / cnt * 10) / 10.0);
-                item.put("OCT", Math.round(OCT / cnt * 10) / 10.0);
-                item.put("NOV", Math.round(NOV / cnt * 10) / 10.0);
-                item.put("DEC", Math.round(DEC / cnt * 10) / 10.0);
-                item.put("CUR_OPR", Math.round(CUR_OPR / cnt * 10) / 10.0);
-                item.put("YEAR_OPR", Math.round(YEAR_OPR / cnt * 10) / 10.0);
-                con_object.put("total", item);
-
-                object.put("result", Constants.RESULT_SUCCESS);
-                object.put("content", con_object);
-                object.put("msg", "");
-
-                return Response.ok(object).build();
-            } else {
-                object.put("result", Constants.RESULT_FAILURE);
-                object.put("msg", "데이터가 존재하지 않습니다.");
-
-                return Response.ok(object).build();
-            }
-        } catch (Exception e) {
-            Log.d(e.getMessage(), e);
-            e.printStackTrace();
-            getWorkingDay.close();
-            con.close();
-
-            object.put("result", Constants.RESULT_FAILURE);
-            object.put("msg", "" + e.getMessage());
-            return Response.ok(object).build();
-        } finally {
-            //Close resources in all cases
-            getWorkingDay.close();
-            con.close();
-        }
-    }
-
     /**
      * 통계 > 가동률 > 연간 가동률
      *
@@ -399,6 +256,64 @@ public class SQLStatistics {
         } finally {
             //Close resources in all cases
             getWorkingDay.close();
+            con.close();
+        }
+    }
+
+    /**
+     * 통계 > 가동률 > 현재 가동률
+     *
+     * @param code 부서 코드
+     * @param year 연도
+     * @return Response
+     * @throws SQLException
+     */
+    @GET
+    @Produces("application/json")
+    @Path("/getCurrentOperationRate")
+    public Response getCurrentOperatingRatio(@QueryParam("YEAR") int year, @QueryParam("DEPT_CD") int code)
+            throws SQLException {
+
+        final Connection con = getSQLConnection();
+        final String query = "SELECT * FROM TABLE(WORK_STRU.MAN_STRU_TB('" + year + "', '" + code + "'))";
+
+        final PreparedStatement preparedStatement =
+                con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+        JSONObject object = new JSONObject();
+
+        try {
+            ResultSet data = preparedStatement.executeQuery();
+            JSONArray items = new JSONArray();
+
+            boolean flag = false;
+            while (data.next()) {
+                flag = true;
+                JSONObject item = new JSONObject();
+                item.put("user_id", data.getString(1));
+                item.put("user_nm", data.getString(2));
+                item.put("man_rate", data.getString(3));
+                item.put("tot_rate", data.getString(4));
+                items.add(item);
+            }
+            if (flag) {
+                object.put("result", Constants.RESULT_SUCCESS);
+                object.put("content", items);
+                object.put("msg", "Great!");
+            } else {
+                object.put("result", Constants.RESULT_FAILURE);
+                object.put("msg", "데이터가 존재하지 않습니다.");
+            }
+
+            return Response.ok(object).build();
+        } catch (Exception e) {
+            Log.d(e.getMessage(), e);
+            object.put("result", Constants.RESULT_FAILURE);
+            object.put("msg", "" + e.getMessage());
+            return Response.ok(object).build();
+        } finally {
+            //Close resources in all cases
+            preparedStatement.close();
             con.close();
         }
     }
