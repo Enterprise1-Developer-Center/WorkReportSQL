@@ -343,54 +343,22 @@ public class SQLStatistics {
         }
     }
 
-    //연간 가동률
+    /**
+     * 통계 > 가동률 > 연간 가동률
+     *
+     * @param code 부서 코드
+     * @param year 연도
+     * @return Response
+     * @throws SQLException
+     */
     @GET
     @Produces("application/json")
-    @Path("/getYearOperatingRatio")
-    public Response getYearOperatingRatio(@QueryParam("DEPT_NM") String deptNm, @QueryParam("YEAR") int year)
+    @Path("/getYearOperationRate")
+    public Response getYearOperatingRatio(@QueryParam("YEAR") int year, @QueryParam("DEPT_CD") int code)
             throws SQLException {
 
         Connection con = getSQLConnection();
-        String query = "WITH MON_TMP AS (  \n" +
-                "        SELECT A.MON\n" +
-                "             , D_CNT-H_CNT AS W_DAY\n" +
-                "          FROM (  \n" +
-                "                SELECT SUBSTR(WORK_YMD, 5,2) AS MON, COUNT(1) AS D_CNT\n" +
-                "                  FROM WORK_CALENDAR\n" +
-                "                 WHERE WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
-                "                GROUP BY SUBSTR(WORK_YMD, 5,2)\n" +
-                "               ) A,\n" +
-                "                (\n" +
-                "                SELECT SUBSTR(WORK_YMD, 5,2) AS MON, COUNT(1) AS H_CNT\n" +
-                "                  FROM HOLIDAY\n" +
-                "                 WHERE WORK_YMD BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
-                "                GROUP BY SUBSTR(WORK_YMD, 5,2)\n" +
-                "               ) B\n" +
-                "          WHERE A.MON = B.MON\n" +
-                "    ),\n" +
-                "    USER_TMP AS(\n" +
-                "    SELECT  USER_ID\n" +
-                "          , TO_CHAR(WORK_YMD, 'MM') AS MON\n" +
-                "          , COUNT(1) AS W_CNT\n" +
-                "     FROM WORK_DETAIL\n" +
-                "    WHERE TO_CHAR(WORK_YMD, 'YYYYMMDD') BETWEEN '" + year + "' || '0101' AND '" + year + "' || '1231'\n" +
-                "     AND LCLS_CD = '1' AND MCLS_CD = '11'\n" +
-                "     GROUP BY USER_ID, TO_CHAR(WORK_YMD, 'MM')\n" +
-                "    )\n" +
-                "    SELECT MON\n" +
-                "         , ROUND(SUM(W_CNT)/SUM(W_DAY) * 100, 1) AS MON_RATE\n" +
-                "         , AVG(ROUND(SUM(W_CNT)/SUM(W_DAY) * 100, 1)) OVER() AS TOT_RATE\n" +
-                "      FROM (\n" +
-                "                SELECT A.USER_ID\n" +
-                "                     , A.MON\n" +
-                "                     , A.W_CNT\n" +
-                "                     , B.W_DAY\n" +
-                "                  FROM USER_TMP A\n" +
-                "                     , MON_TMP B\n" +
-                "                 WHERE A.MON = B.MON\n" +
-                "            )\n" +
-                "      GROUP BY MON\n" +
-                "      ORDER BY MON";
+        String query = "SELECT * FROM TABLE(WORK_STRU.MONTH_STRU_TB('" + year + "', '" + code + "'))";
 
         PreparedStatement getWorkingDay =
                 con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -400,6 +368,7 @@ public class SQLStatistics {
         try {
             ResultSet data = getWorkingDay.executeQuery();
             JSONArray items = new JSONArray();
+
             boolean flag = false;
             while (data.next()) {
                 flag = true;

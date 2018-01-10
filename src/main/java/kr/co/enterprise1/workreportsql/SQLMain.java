@@ -327,7 +327,7 @@ public class SQLMain {
     ) throws SQLException {
         Connection con = getSQLConnection();
         String query =
-                "SELECT u.USER_ID, d.DEPT_NM from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
+                "SELECT u.USER_ID, d.DEPT_NM, d.DEPT_CD from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
         PreparedStatement checkLogin =
                 con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -347,6 +347,7 @@ public class SQLMain {
                 result2.put("date", sdf.format(date).toString());
                 result2.put("USER_ID", data.getString(1));
                 result2.put("DEPT_NM", data.getString(2));
+                result2.put("DEPT_CD", data.getInt(3));
 
                 result.put("result", Constants.RESULT_SUCCESS);
                 result.put("msg", "");
