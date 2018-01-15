@@ -41,7 +41,7 @@ public class SQLProjManage {
     public Response getProjects2(@QueryParam("DEPT_CD") String deptCD) throws SQLException {
 
         Connection con = getSQLConnection();
-        String query = "select * from PROJ_INFO where PROJ_CD != 0";
+        String query = "SELECT * FROM PROJ_INFO WHERE PROJ_CD != 0";
 
         PreparedStatement preparedStatement =
                 con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE,
