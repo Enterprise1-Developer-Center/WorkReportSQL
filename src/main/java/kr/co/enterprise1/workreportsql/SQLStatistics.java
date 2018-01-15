@@ -330,8 +330,8 @@ public class SQLStatistics {
             CallableStatement cstmt = connection.prepareCall(query);
             cstmt.setString(1, String.valueOf(year));
             cstmt.setString(2, userId);
-            cstmt.execute();
-
+            final boolean isExecuted = cstmt.execute();
+            Log.d("isExecuted = " + isExecuted);
             object.put("result", Constants.RESULT_SUCCESS);
             object.put("msg", year + " WORK_CALENDAR를 생성하였습니다.");
         } catch (Exception e) {

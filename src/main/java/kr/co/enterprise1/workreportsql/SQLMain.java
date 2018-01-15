@@ -494,6 +494,4 @@ public class SQLMain {
             con.close();
         }
     }
-
-
 }
