@@ -11,6 +11,7 @@ import com.ibm.json.java.JSONArray;
 import com.ibm.json.java.JSONObject;
 import com.ibm.mfp.adapter.api.AdaptersAPI;
 import com.ibm.mfp.adapter.api.ConfigurationAPI;
+import org.omg.PortableInterceptor.SUCCESSFUL;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -25,7 +26,7 @@ import java.sql.SQLException;
 public class WorkReportSQLResource {
     /*
      * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
-  */
+     */
     private final static AdapterLog Log = new AdapterLog(SQLTeamReport.class.getName());
     @Context
     ConfigurationAPI configurationAPI;
@@ -109,26 +110,28 @@ public class WorkReportSQLResource {
 
     @GET
     @Produces("application/json")
-    public Response getAllUsers() throws SQLException {
-        JSONArray results = new JSONArray();
-        Connection con = getSQLConnection();
-        PreparedStatement getAllUsers = con.prepareStatement("SELECT * FROM users");
-        ResultSet data = getAllUsers.executeQuery();
+    @Path("/getUsers")
+    public Response getUsers() throws SQLException {
 
+        Connection con = getSQLConnection();
+        PreparedStatement preparedStatement = con.prepareStatement("SELECT * FROM USER_INFO");
+        ResultSet data = preparedStatement.executeQuery();
+
+        JSONObject result = new JSONObject();
+        JSONArray jsonArray = new JSONArray();
         while (data.next()) {
             JSONObject item = new JSONObject();
-            item.put("userId", data.getString("userId"));
-            item.put("firstName", data.getString("firstName"));
-            item.put("lastName", data.getString("lastName"));
-            item.put("password", data.getString("password"));
-
-            results.add(item);
+            item.put("USER_ID", data.getString("USER_ID"));
+            item.put("USER_NM", data.getString("USER_NM"));
+            item.put("ADMIN", data.getString("ADMIN"));
+            jsonArray.add(item);
         }
-
-        getAllUsers.close();
+        result.put("result", Constants.RESULT_SUCCESS);
+        result.put("content", jsonArray);
+        preparedStatement.close();
         con.close();
 
-        return Response.ok(results).build();
+        return Response.ok(result).build();
     }
 
     @PUT

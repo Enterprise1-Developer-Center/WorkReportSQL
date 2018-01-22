@@ -311,4 +311,75 @@ public class SQLProjManage {
             connection.close();
         }
     }
+
+    //프로젝트 상제 정보 가져오기, 투입인원 현황
+    @GET
+    @Produces("application/json")
+    @Path("/getEmployees")
+    public Response getEmployees() throws SQLException {
+
+        Connection connection = getSQLConnection();
+        String sql = "SELECT PD.*, UI.USER_NM, PI.PROJ_NM FROM PROJ_DETAIL PD, USER_INFO UI, PROJ_INFO PI WHERE PD.USER_ID = UI.USER_ID AND PD.PROJ_CD = PI.PROJ_CD";
+
+        PreparedStatement preparedStatement =
+                connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                        ResultSet.CONCUR_READ_ONLY);
+
+        JSONArray results = new JSONArray();
+        JSONObject object = new JSONObject();
+
+        try {
+            ResultSet data = preparedStatement.executeQuery();
+            while (data.next()) {
+                JSONObject item = new JSONObject();
+                item.put("PROJ_CD", data.getString(1));
+                item.put("USER_ID", data.getString(2));
+                item.put("USER_SDATE", data.getString(3));
+                item.put("USER_EDATE", data.getString(4));
+                item.put("LCLS_CD", data.getString(9));
+                item.put("MCLS_CD", data.getString(10));
+                item.put("USER_NM", data.getString(11));
+                item.put("PROJ_NM", data.getString(12));
+
+                results.add(item);
+            }
+            object.put("result", Constants.RESULT_SUCCESS);
+            object.put("content", results);
+            object.put("msg", "");
+            return Response.ok(object).build();
+        } catch (Exception e) {
+            Log.d(e.getMessage(), e);
+            preparedStatement.close();
+            connection.close();
+            object.put("result", Constants.RESULT_FAILURE);
+            object.put("msg", "" + e.getMessage());
+            return Response.ok(object).build();
+        } finally {
+            //Close resources in all cases
+            preparedStatement.close();
+            connection.close();
+        }
+    }
+
+    //프로젝트 상제 정보 가져오기, 투입인원 현황
+    @GET
+    @Produces("application/json")
+    @Path("/getUserTypes")
+    public Response getUserTypes() throws SQLException {
+        JSONArray jsonArray = new JSONArray();
+        JSONObject contents = new JSONObject();
+        contents.put("TYPE_CD", "1");
+        contents.put("TYPE_NM", "정규");
+        jsonArray.add(contents);
+        contents = new JSONObject();
+        contents.put("TYPE_CD", "2");
+        contents.put("TYPE_NM", "외부");
+        jsonArray.add(contents);
+        JSONObject object = new JSONObject();
+
+        object.put("result", Constants.RESULT_SUCCESS);
+        object.put("content", jsonArray);
+        object.put("msg", "");
+        return Response.ok(object).build();
+    }
 }
