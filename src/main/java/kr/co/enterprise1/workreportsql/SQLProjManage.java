@@ -13,9 +13,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 /**
  * Created by jaeho on 2018. 1. 9
@@ -364,16 +361,17 @@ public class SQLProjManage {
     //프로젝트 상제 정보 가져오기, 투입인원 현황
     @GET
     @Produces("application/json")
-    @Path("/getUserTypes")
-    public Response getUserTypes() throws SQLException {
+    @Path("/getUserStats")
+    public Response getUserStats() throws SQLException {
         JSONArray jsonArray = new JSONArray();
         JSONObject contents = new JSONObject();
-        contents.put("TYPE_CD", "1");
-        contents.put("TYPE_NM", "정규");
+
+        contents.put("STATS", "S");
+        contents.put("STATS_NM", "정규직");
         jsonArray.add(contents);
         contents = new JSONObject();
-        contents.put("TYPE_CD", "2");
-        contents.put("TYPE_NM", "외부");
+        contents.put("STATS", "P");
+        contents.put("STATS_NM", "프리");
         jsonArray.add(contents);
         JSONObject object = new JSONObject();
 
@@ -382,4 +380,114 @@ public class SQLProjManage {
         object.put("msg", "");
         return Response.ok(object).build();
     }
+
+    //프로젝트 추가
+    @POST
+    @Produces("application/json")
+    @Path("/addEmployee")
+    public Response addEmployee(@FormParam("USER_SDATE") String user_sdate,
+                                @FormParam("USER_EDATE") String user_edate,
+                                @FormParam("LCLS_CD") String lcls_cd,
+                                @FormParam("MCLS_CD") String mcls_cd,
+                                @FormParam("PROJ_CD") String proj_cd,
+                                @FormParam("USER_ID") String user_id,
+                                @FormParam("STATS") String state
+    ) throws SQLException {
+        if (TextUtils.isBlank(user_sdate)
+                || TextUtils.isBlank(user_edate)
+                || TextUtils.isBlank(lcls_cd)
+                || TextUtils.isBlank(mcls_cd)
+                || TextUtils.isBlank(state)
+                || TextUtils.isBlank(user_id)
+                || TextUtils.isBlank(proj_cd)) {
+
+            JSONObject result = new JSONObject();
+            result.put("result", Constants.RESULT_FAILURE);
+            result.put("msg", "모두 입력하셔야 합니다");
+            return Response.ok(result).build();
+        }
+
+        String query = "MERGE INTO PROJ_DETAIL P\n" +
+                " USING DUAL\n" +
+                "    ON (P.PROJ_CD = ? AND P.USER_ID = ?)\n" +
+                " WHEN MATCHED THEN\n" +
+                "      UPDATE SET\n" +
+                "         LCLS_CD = ?\n" +
+                "       , MCLS_CD = ?\n" +
+                "       , USER_SDATE = ?\n" +
+                "       , USER_EDATE= ?\n" +
+                "       , UPD_ID = 'TEST4'\n" +
+                "       , UPD_DTM = SYSDATE\n" +
+                " WHEN NOT MATCHED THEN\n" +
+                "      INSERT (\n" +
+                "                 PROJ_CD\n" +
+                "               , USER_ID\n" +
+                "               , LCLS_CD\n" +
+                "               , MCLS_CD\n" +
+                "               , USER_SDATE \n" +
+                "               , USER_EDATE\n" +
+                "               , UPD_ID\n" +
+                "               , UPD_DTM\n" +
+                "               , CRE_ID\n" +
+                "               , CRE_DTM\n" +
+                "             )\n" +
+                "      VALUES (\n" +
+                "                  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               , 'TEST4'\n" +
+                "               , SYSDATE\n" +
+                "               , 'TEST4'\n" +
+                "               , SYSDATE\n" +
+                "              )";
+        //1 : PROJ_CD
+        //2 : USER_ID
+        //3 : LCLS_CD
+        //4 : MCLS_CD
+        //5 : USER_SDATE
+        //6 : USER_EDATE
+        //7 : PROJ_CD
+        //8 : USER_ID
+        //9 : LCLS_CD
+        //10: MCLS_CD
+        //11: USER_SDATE
+        //12: USER_EDATE
+
+        Connection connection = getSQLConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        JSONObject result = new JSONObject();
+        try {
+            preparedStatement.setString(1, proj_cd);
+            preparedStatement.setString(2, user_id);
+            preparedStatement.setString(3, lcls_cd);
+            preparedStatement.setString(4, mcls_cd);
+            preparedStatement.setString(5, user_sdate);
+            preparedStatement.setString(6, user_edate);
+            preparedStatement.setString(7, proj_cd);
+            preparedStatement.setString(8, user_id);
+            preparedStatement.setString(9, lcls_cd);
+            preparedStatement.setString(10, mcls_cd);
+            preparedStatement.setString(11, user_sdate);
+            preparedStatement.setString(12, user_edate);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            result.put("result", Constants.RESULT_SUCCESS);
+            result.put("msg", "투입인원이 추가되었습니다.");
+            return Response.ok(result).build();
+        } catch (Exception e) {
+            //Trying to create a user that already exists
+            Log.d(e.getMessage(), e);
+            result.put("result", Constants.RESULT_FAILURE);
+            result.put("msg", "" + e.getMessage());
+            return Response.ok(result).build();
+        } finally {
+            //Close resources in all cases
+            preparedStatement.close();
+            connection.close();
+        }
+    }
+
 }
