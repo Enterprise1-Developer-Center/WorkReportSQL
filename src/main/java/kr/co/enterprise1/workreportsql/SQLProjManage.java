@@ -9,6 +9,7 @@ import org.apache.http.util.TextUtils;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.xml.transform.Result;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -316,7 +317,7 @@ public class SQLProjManage {
     public Response getEmployees() throws SQLException {
 
         Connection connection = getSQLConnection();
-        String sql = "SELECT PD.*, UI.USER_NM, PI.PROJ_NM FROM PROJ_DETAIL PD, USER_INFO UI, PROJ_INFO PI WHERE PD.USER_ID = UI.USER_ID AND PD.PROJ_CD = PI.PROJ_CD";
+        String sql = "SELECT PD.*, UI.USER_NM, UI.STATS,PI.PROJ_NM FROM PROJ_DETAIL PD, USER_INFO UI, PROJ_INFO PI WHERE PD.USER_ID = UI.USER_ID AND PD.PROJ_CD = PI.PROJ_CD";
 
         PreparedStatement preparedStatement =
                 connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE,
@@ -336,7 +337,8 @@ public class SQLProjManage {
                 item.put("LCLS_CD", data.getString(9));
                 item.put("MCLS_CD", data.getString(10));
                 item.put("USER_NM", data.getString(11));
-                item.put("PROJ_NM", data.getString(12));
+                item.put("STATS", data.getString(12));
+                item.put("PROJ_NM", data.getString(13));
 
                 results.add(item);
             }
@@ -358,30 +360,7 @@ public class SQLProjManage {
         }
     }
 
-    //프로젝트 상제 정보 가져오기, 투입인원 현황
-    @GET
-    @Produces("application/json")
-    @Path("/getUserStats")
-    public Response getUserStats() throws SQLException {
-        JSONArray jsonArray = new JSONArray();
-        JSONObject contents = new JSONObject();
-
-        contents.put("STATS", "S");
-        contents.put("STATS_NM", "정규직");
-        jsonArray.add(contents);
-        contents = new JSONObject();
-        contents.put("STATS", "P");
-        contents.put("STATS_NM", "프리");
-        jsonArray.add(contents);
-        JSONObject object = new JSONObject();
-
-        object.put("result", Constants.RESULT_SUCCESS);
-        object.put("content", jsonArray);
-        object.put("msg", "");
-        return Response.ok(object).build();
-    }
-
-    //프로젝트 추가
+    //투입원 추가
     @POST
     @Produces("application/json")
     @Path("/addEmployee")
@@ -390,14 +369,12 @@ public class SQLProjManage {
                                 @FormParam("LCLS_CD") String lcls_cd,
                                 @FormParam("MCLS_CD") String mcls_cd,
                                 @FormParam("PROJ_CD") String proj_cd,
-                                @FormParam("USER_ID") String user_id,
-                                @FormParam("STATS") String state
+                                @FormParam("USER_ID") String user_id
     ) throws SQLException {
         if (TextUtils.isBlank(user_sdate)
                 || TextUtils.isBlank(user_edate)
                 || TextUtils.isBlank(lcls_cd)
                 || TextUtils.isBlank(mcls_cd)
-                || TextUtils.isBlank(state)
                 || TextUtils.isBlank(user_id)
                 || TextUtils.isBlank(proj_cd)) {
 
@@ -489,5 +466,147 @@ public class SQLProjManage {
             connection.close();
         }
     }
+
+    //투입원 수정
+    @POST
+    @Produces("application/json")
+    @Path("/editEmployee")
+    public Response editEmployee(@FormParam("USER_SDATE") String user_sdate,
+                                 @FormParam("USER_EDATE") String user_edate,
+                                 @FormParam("LCLS_CD") String lcls_cd,
+                                 @FormParam("MCLS_CD") String mcls_cd,
+                                 @FormParam("PROJ_CD") String proj_cd,
+                                 @FormParam("USER_ID") String user_id
+    ) throws SQLException {
+        if (TextUtils.isBlank(user_sdate)
+                || TextUtils.isBlank(user_edate)
+                || TextUtils.isBlank(lcls_cd)
+                || TextUtils.isBlank(mcls_cd)
+                || TextUtils.isBlank(user_id)
+                || TextUtils.isBlank(proj_cd)) {
+
+            JSONObject result = new JSONObject();
+            result.put("result", Constants.RESULT_FAILURE);
+            result.put("msg", "모두 입력하셔야 합니다");
+            return Response.ok(result).build();
+        }
+
+        String query = "MERGE INTO PROJ_DETAIL P\n" +
+                " USING DUAL\n" +
+                "    ON (P.PROJ_CD = ? AND P.USER_ID = ?)\n" +
+                " WHEN MATCHED THEN\n" +
+                "      UPDATE SET\n" +
+                "         LCLS_CD = ?\n" +
+                "       , MCLS_CD = ?\n" +
+                "       , USER_SDATE = ?\n" +
+                "       , USER_EDATE= ?\n" +
+                "       , UPD_ID = 'TEST4'\n" +
+                "       , UPD_DTM = SYSDATE\n" +
+                " WHEN NOT MATCHED THEN\n" +
+                "      INSERT (\n" +
+                "                 PROJ_CD\n" +
+                "               , USER_ID\n" +
+                "               , LCLS_CD\n" +
+                "               , MCLS_CD\n" +
+                "               , USER_SDATE \n" +
+                "               , USER_EDATE\n" +
+                "               , UPD_ID\n" +
+                "               , UPD_DTM\n" +
+                "               , CRE_ID\n" +
+                "               , CRE_DTM\n" +
+                "             )\n" +
+                "      VALUES (\n" +
+                "                  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               ,  ? \n" +
+                "               , 'TEST4'\n" +
+                "               , SYSDATE\n" +
+                "               , 'TEST4'\n" +
+                "               , SYSDATE\n" +
+                "              )";
+        //1 : PROJ_CD
+        //2 : USER_ID
+        //3 : LCLS_CD
+        //4 : MCLS_CD
+        //5 : USER_SDATE
+        //6 : USER_EDATE
+        //7 : PROJ_CD
+        //8 : USER_ID
+        //9 : LCLS_CD
+        //10: MCLS_CD
+        //11: USER_SDATE
+        //12: USER_EDATE
+
+        Connection connection = getSQLConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        JSONObject result = new JSONObject();
+        try {
+            preparedStatement.setString(1, proj_cd);
+            preparedStatement.setString(2, user_id);
+            preparedStatement.setString(3, lcls_cd);
+            preparedStatement.setString(4, mcls_cd);
+            preparedStatement.setString(5, user_sdate);
+            preparedStatement.setString(6, user_edate);
+            preparedStatement.setString(7, proj_cd);
+            preparedStatement.setString(8, user_id);
+            preparedStatement.setString(9, lcls_cd);
+            preparedStatement.setString(10, mcls_cd);
+            preparedStatement.setString(11, user_sdate);
+            preparedStatement.setString(12, user_edate);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            result.put("result", Constants.RESULT_SUCCESS);
+            result.put("msg", "투입인원이 수정되었습니다.");
+            return Response.ok(result).build();
+        } catch (Exception e) {
+            //Trying to create a user that already exists
+            Log.d(e.getMessage(), e);
+            result.put("result", Constants.RESULT_FAILURE);
+            result.put("msg", "" + e.getMessage());
+            return Response.ok(result).build();
+        } finally {
+            //Close resources in all cases
+            preparedStatement.close();
+            connection.close();
+        }
+    }
+
+    //투입인원 제거
+    @POST
+    @Produces("application/json")
+    @Path("/delEmployee")
+    public Response delEmployee(@FormParam("PROJ_CD") String projCode, @FormParam("USER_ID") String userId) throws SQLException {
+        Log.d("delEmployee(" + projCode + ", + " + userId + ")");
+        Connection connection = getSQLConnection();
+        String query = "DELETE FROM PROJ_DETAIL WHERE PROJ_CD = ? AND USER_ID = ?";
+
+        PreparedStatement preparedStatement =
+                connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE,
+                        ResultSet.CONCUR_READ_ONLY);
+
+        JSONObject object = new JSONObject();
+
+        try {
+            preparedStatement.setString(1, projCode);
+            preparedStatement.setString(2, userId);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            object.put("result", Constants.RESULT_SUCCESS);
+            object.put("msg", "투입인원이 삭제되었습니다.");
+            return Response.ok(object).build();
+        } catch (Exception e) {
+            object.put("result", Constants.RESULT_FAILURE);
+            object.put("msg", "" + e.getMessage());
+            return Response.ok(object).build();
+        } finally {
+            //Close resources in all cases
+            preparedStatement.close();
+            connection.close();
+        }
+    }
+
 
 }
