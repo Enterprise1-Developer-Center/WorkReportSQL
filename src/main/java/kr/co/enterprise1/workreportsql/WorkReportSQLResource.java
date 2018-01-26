@@ -24,175 +24,175 @@ import java.sql.SQLException;
 
 @Path("/")
 public class WorkReportSQLResource {
-    /*
-     * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
-     */
-    private final static AdapterLog Log = new AdapterLog(SQLTeamReport.class.getName());
-    @Context
-    ConfigurationAPI configurationAPI;
+  /*
+   * For more info on JAX-RS see https://jax-rs-spec.java.net/nonav/2.0-rev-a/apidocs/index.html
+   */
+  private final static AdapterLog Log = new AdapterLog(SQLTeamReport.class.getName());
+  @Context
+  ConfigurationAPI configurationAPI;
 
-    @Context
-    AdaptersAPI adaptersAPI;
+  @Context
+  AdaptersAPI adaptersAPI;
 
-    public Connection getSQLConnection() throws SQLException {
-        // Create a connection object to the database
-        WorkReportSQLApplication app = adaptersAPI.getJaxRsApplication(WorkReportSQLApplication.class);
-        return app.dataSource.getConnection();
+  public Connection getSQLConnection() throws SQLException {
+    // Create a connection object to the database
+    WorkReportSQLApplication app = adaptersAPI.getJaxRsApplication(WorkReportSQLApplication.class);
+    return app.dataSource.getConnection();
+  }
+
+  @POST
+  public Response createUser(@FormParam("userId") String userId,
+      @FormParam("userPw") String userPw
+  ) throws SQLException {
+    Log.d("userId = " + userId + ", userPw = " + userPw);
+    Connection con = getSQLConnection();
+    PreparedStatement insertUser =
+        con.prepareStatement("INSERT INTO USER_INFO (USER_ID, USER_PW) VALUES (?,?)");
+
+    try {
+      insertUser.setString(1, userId);
+      insertUser.setString(2, userPw);
+      //            insertUser.setString(3, lastName);
+      //            insertUser.setString(4, password);
+      insertUser.executeUpdate();
+      //Return a 200 OK
+      return Response.ok().build();
+    } catch (Exception violation) {
+      //Trying to create a user that already exists
+      return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
+    } finally {
+      //Close resources in all cases
+      insertUser.close();
+      con.close();
     }
+  }
 
-    @POST
-    public Response createUser(@FormParam("userId") String userId,
-                               @FormParam("userPw") String userPw
-    ) throws SQLException {
-        Log.d("userId = " + userId + ", userPw = " + userPw);
-        Connection con = getSQLConnection();
-        PreparedStatement insertUser =
-                con.prepareStatement("INSERT INTO USER_INFO (USER_ID, USER_PW) VALUES (?,?)");
+  @GET
+  @Produces("application/json")
+  @Path("/{userId}")
+  public Response getUser(@PathParam("userId") String userId) throws SQLException {
+    Log.d("userId = " + userId);
+    Connection con = getSQLConnection();
+    String query = "SELECT * FROM USER_INFO WHERE USER_ID = ?";
+    //PreparedStatement getUser = con.prepareStatement(query);
+    PreparedStatement getUser =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-        try {
-            insertUser.setString(1, userId);
-            insertUser.setString(2, userPw);
-            //            insertUser.setString(3, lastName);
-            //            insertUser.setString(4, password);
-            insertUser.executeUpdate();
-            //Return a 200 OK
-            return Response.ok().build();
-        } catch (Exception violation) {
-            //Trying to create a user that already exists
-            return Response.status(Status.CONFLICT).entity(violation.getMessage()).build();
-        } finally {
-            //Close resources in all cases
-            insertUser.close();
-            con.close();
-        }
-    }
+    try {
+      JSONObject result = new JSONObject();
 
-    @GET
-    @Produces("application/json")
-    @Path("/{userId}")
-    public Response getUser(@PathParam("userId") String userId) throws SQLException {
-        Log.d("userId = " + userId);
-        Connection con = getSQLConnection();
-        String query = "SELECT * FROM USER_INFO WHERE USER_ID = ?";
-        //PreparedStatement getUser = con.prepareStatement(query);
-        PreparedStatement getUser =
-                con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+      getUser.setString(1, userId);
+      ResultSet data = getUser.executeQuery();
 
-        try {
-            JSONObject result = new JSONObject();
-
-            getUser.setString(1, userId);
-            ResultSet data = getUser.executeQuery();
-
-            if (data.first()) {
-                String value = data.getString("USER_ID");
-                result.put("userId", value);
+      if (data.first()) {
+        String value = data.getString("USER_ID");
+        result.put("userId", value);
 /*
                 result.put("firstName", data.getString("firstName"));
                 result.put("lastName", data.getString("lastName"));
                 result.put("password", data.getString("password"));
 */
-                return Response.ok(result).build();
-            } else {
-                return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-            }
-        } catch (Exception e) {
-            Log.d(e.getMessage(), e);
-            getUser.close();
-            con.close();
-            return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-        } finally {
-            //Close resources in all cases
-            getUser.close();
-            con.close();
-        }
-    }
-
-    @GET
-    @Produces("application/json")
-    @Path("/getUsers")
-    public Response getUsers() throws SQLException {
-
-        Connection con = getSQLConnection();
-        PreparedStatement preparedStatement = con.prepareStatement("SELECT * FROM USER_INFO");
-        ResultSet data = preparedStatement.executeQuery();
-
-        JSONObject result = new JSONObject();
-        JSONArray jsonArray = new JSONArray();
-        while (data.next()) {
-            JSONObject item = new JSONObject();
-            item.put("USER_ID", data.getString("USER_ID"));
-            item.put("USER_NM", data.getString("USER_NM"));
-            item.put("ADMIN", data.getString("ADMIN"));
-            jsonArray.add(item);
-        }
-        result.put("result", Constants.RESULT_SUCCESS);
-        result.put("content", jsonArray);
-        preparedStatement.close();
-        con.close();
-
         return Response.ok(result).build();
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      }
+    } catch (Exception e) {
+      Log.d(e.getMessage(), e);
+      getUser.close();
+      con.close();
+      return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+    } finally {
+      //Close resources in all cases
+      getUser.close();
+      con.close();
     }
+  }
 
-    @PUT
-    @Path("/{userId}")
-    public Response updateUser(@PathParam("userId") String userId,
-                               @FormParam("firstName") String firstName,
-                               @FormParam("lastName") String lastName,
-                               @FormParam("password") String password)
-            throws SQLException {
-        Connection con = getSQLConnection();
-        PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
+  @GET
+  @Produces("application/json")
+  @Path("/getUsers")
+  public Response getUsers() throws SQLException {
 
-        try {
-            getUser.setString(1, userId);
-            ResultSet data = getUser.executeQuery();
+    Connection con = getSQLConnection();
+    PreparedStatement preparedStatement = con.prepareStatement("SELECT * FROM USER_INFO");
+    ResultSet data = preparedStatement.executeQuery();
 
-            if (data.first()) {
-                PreparedStatement updateUser = con.prepareStatement(
-                        "UPDATE users SET firstName = ?, lastName = ?, password = ? WHERE userId = ?");
-
-                updateUser.setString(1, firstName);
-                updateUser.setString(2, lastName);
-                updateUser.setString(3, password);
-                updateUser.setString(4, userId);
-
-                updateUser.executeUpdate();
-                updateUser.close();
-                return Response.ok().build();
-            } else {
-                return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-            }
-        } finally {
-            //Close resources in all cases
-            getUser.close();
-            con.close();
-        }
+    JSONObject result = new JSONObject();
+    JSONArray jsonArray = new JSONArray();
+    while (data.next()) {
+      JSONObject item = new JSONObject();
+      item.put("USER_ID", data.getString("USER_ID"));
+      item.put("USER_NM", data.getString("USER_NM"));
+      item.put("ADMIN", data.getString("ADMIN"));
+      jsonArray.add(item);
     }
+    result.put("result", Constants.RESULT_SUCCESS);
+    result.put("content", jsonArray);
+    preparedStatement.close();
+    con.close();
 
-    @DELETE
-    @Path("/{userId}")
-    public Response deleteUser(@PathParam("userId") String userId) throws SQLException {
-        Connection con = getSQLConnection();
-        PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
+    return Response.ok(result).build();
+  }
 
-        try {
-            getUser.setString(1, userId);
-            ResultSet data = getUser.executeQuery();
+  @PUT
+  @Path("/{userId}")
+  public Response updateUser(@PathParam("userId") String userId,
+      @FormParam("firstName") String firstName,
+      @FormParam("lastName") String lastName,
+      @FormParam("password") String password)
+      throws SQLException {
+    Connection con = getSQLConnection();
+    PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
 
-            if (data.first()) {
-                PreparedStatement deleteUser = con.prepareStatement("DELETE FROM users WHERE userId = ?");
-                deleteUser.setString(1, userId);
-                deleteUser.executeUpdate();
-                deleteUser.close();
-                return Response.ok().build();
-            } else {
-                return Response.status(Status.NOT_FOUND).entity("User not found...").build();
-            }
-        } finally {
-            //Close resources in all cases
-            getUser.close();
-            con.close();
-        }
+    try {
+      getUser.setString(1, userId);
+      ResultSet data = getUser.executeQuery();
+
+      if (data.first()) {
+        PreparedStatement updateUser = con.prepareStatement(
+            "UPDATE users SET firstName = ?, lastName = ?, password = ? WHERE userId = ?");
+
+        updateUser.setString(1, firstName);
+        updateUser.setString(2, lastName);
+        updateUser.setString(3, password);
+        updateUser.setString(4, userId);
+
+        updateUser.executeUpdate();
+        updateUser.close();
+        return Response.ok().build();
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      }
+    } finally {
+      //Close resources in all cases
+      getUser.close();
+      con.close();
     }
+  }
+
+  @DELETE
+  @Path("/{userId}")
+  public Response deleteUser(@PathParam("userId") String userId) throws SQLException {
+    Connection con = getSQLConnection();
+    PreparedStatement getUser = con.prepareStatement("SELECT * FROM users WHERE userId = ?");
+
+    try {
+      getUser.setString(1, userId);
+      ResultSet data = getUser.executeQuery();
+
+      if (data.first()) {
+        PreparedStatement deleteUser = con.prepareStatement("DELETE FROM users WHERE userId = ?");
+        deleteUser.setString(1, userId);
+        deleteUser.executeUpdate();
+        deleteUser.close();
+        return Response.ok().build();
+      } else {
+        return Response.status(Status.NOT_FOUND).entity("User not found...").build();
+      }
+    } finally {
+      //Close resources in all cases
+      getUser.close();
+      con.close();
+    }
+  }
 }
