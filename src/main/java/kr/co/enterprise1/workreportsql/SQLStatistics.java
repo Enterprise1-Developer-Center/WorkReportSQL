@@ -11,6 +11,8 @@ import javax.ws.rs.core.Response;
 import java.sql.*;
 import java.util.Calendar;
 
+import static org.apache.http.HttpHeaders.FROM;
+
 /**
  * Created by jaeho on 2018. 1. 9
  */
@@ -353,5 +355,56 @@ public class SQLStatistics {
     }
 
     return Response.ok(object).build();
+  }
+
+  //통계 > 가동률 > 현재 가동률
+  @GET
+  @Produces("application/json")
+  @Path("/getHolidays")
+  public Response getHolidays(@QueryParam("YEAR") int year)
+      throws SQLException {
+    Log.d("year = " + year);
+    final Connection con = getSQLConnection();
+    final String query =
+        "SELECT * FROM HOLIDAY WHERE WORK_YMD LIKE '"+year+"%'";
+    Log.d("query = " + query);
+    final PreparedStatement preparedStatement =
+        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+    JSONObject object = new JSONObject();
+
+    try {
+      //preparedStatement.setString(1, String.valueOf(year));
+      ResultSet data = preparedStatement.executeQuery();
+      JSONArray items = new JSONArray();
+
+      boolean flag = false;
+      while (data.next()) {
+        flag = true;
+        JSONObject item = new JSONObject();
+        item.put("WORK_YMD", data.getString(1));
+        item.put("HOLIDAY_NM", data.getString(2));
+        items.add(item);
+      }
+      if (flag) {
+        object.put("result", Constants.RESULT_SUCCESS);
+        object.put("content", items);
+        object.put("msg", "Great!");
+      } else {
+        object.put("result", Constants.RESULT_FAILURE);
+        object.put("msg", "데이터가 존재하지 않습니다.");
+      }
+
+      return Response.ok(object).build();
+    } catch (Exception e) {
+      Log.d(e.getMessage(), e);
+      object.put("result", Constants.RESULT_FAILURE);
+      object.put("msg", "" + e.getMessage());
+      return Response.ok(object).build();
+    } finally {
+      //Close resources in all cases
+      preparedStatement.close();
+      con.close();
+    }
   }
 }
