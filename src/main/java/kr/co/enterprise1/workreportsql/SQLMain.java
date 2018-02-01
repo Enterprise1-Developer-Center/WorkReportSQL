@@ -446,33 +446,26 @@ public class SQLMain {
   @GET
   @Produces("application/json")
   @Path("/getProjects")
-  public Response getProjects(@QueryParam("DEPT_NM") String DEPT_NM) throws SQLException {
+  public Response getProjects(@QueryParam("DEPT_CD") String dept_cd) throws SQLException {
 
     Connection con = getSQLConnection();
-    String query = "SELECT PROJ_CD, PROJ_NM, dept_nm FROM PROJ_INFO";
-    String query_dept =
-        "SELECT PROJ_CD, PROJ_NM, dept_nm  FROM PROJ_INFO where dept_nm=? or dept_nm='0'";
+    String sql = "SELECT PROJ_CD, PROJ_NM, DEPT_CD FROM PROJ_INFO WHERE DEPT_CD = ? OR PROJ_CD = 0";
 
-    PreparedStatement checkLogin =
-        DEPT_NM == null ?
-            con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY) :
-            con.prepareStatement(query_dept, ResultSet.TYPE_SCROLL_INSENSITIVE,
-                ResultSet.CONCUR_READ_ONLY);
+    PreparedStatement preparedStatement =
+        con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
 
     JSONArray results = new JSONArray();
     JSONObject object = new JSONObject();
 
-    if (DEPT_NM != null) {
-      checkLogin.setString(1, DEPT_NM);
-    }
     try {
-      ResultSet data = checkLogin.executeQuery();
+      preparedStatement.setString(1, dept_cd);
+      ResultSet data = preparedStatement.executeQuery();
       while (data.next()) {
         JSONObject item = new JSONObject();
         item.put("PROJ_CD", data.getString(1));
         item.put("PROJ_NM", data.getString(2));
-        item.put("DEPT_NM", data.getString(3));
+        item.put("DEPT_CD", data.getString(3));
 
         results.add(item);
       }
@@ -482,14 +475,14 @@ public class SQLMain {
       return Response.ok(object).build();
     } catch (Exception e) {
       Log.d(e.getMessage(), e);
-      checkLogin.close();
+      preparedStatement.close();
       con.close();
       object.put("result", Constants.RESULT_FAILURE);
       object.put("msg", "" + e.getMessage());
       return Response.ok(object).build();
     } finally {
       //Close resources in all cases
-      checkLogin.close();
+      preparedStatement.close();
       con.close();
     }
   }
