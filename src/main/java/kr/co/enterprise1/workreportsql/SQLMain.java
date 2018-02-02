@@ -325,13 +325,16 @@ public class SQLMain {
       @QueryParam("userPw") String userPw
   ) throws SQLException {
     Connection con = getSQLConnection();
-    String query =
-        "SELECT u.USER_ID, d.DEPT_NM, d.DEPT_CD from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
+    //String query =
+    //    "SELECT u.USER_ID, d.DEPT_NM, d.DEPT_CD from USER_INFO u, DEPT_INFO d WHERE u.DEPT_CD = d.DEPT_CD and USER_ID=? AND USER_PW=?";
+
+    String sql =
+        "SELECT UI.USER_ID, DI.DEPT_NM, DI.DEPT_CD, UI.ADMIN FROM USER_INFO UI, DEPT_INFO DI WHERE UI.DEPT_CD = DI.DEPT_CD AND USER_ID = ? AND USER_PW = ?";
     PreparedStatement checkLogin =
-        con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     JSONObject result = new JSONObject();
-    JSONObject result2 = new JSONObject();
+    JSONObject content = new JSONObject();
 
     try {
       checkLogin.setString(1, userId);
@@ -343,14 +346,15 @@ public class SQLMain {
         Date date = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.KOREAN);
 
-        result2.put("date", sdf.format(date).toString());
-        result2.put("USER_ID", data.getString(1));
-        result2.put("DEPT_NM", data.getString(2));
-        result2.put("DEPT_CD", data.getInt(3));
+        content.put("date", sdf.format(date).toString());
+        content.put("USER_ID", data.getString(1));
+        content.put("DEPT_NM", data.getString(2));
+        content.put("DEPT_CD", data.getInt(3));
+        content.put("ADMIN", data.getInt(4) == 1 ? true : false);
 
         result.put("result", Constants.RESULT_SUCCESS);
         result.put("msg", "");
-        result.put("content", result2);
+        result.put("content", content);
 
         return Response.ok(result).build();
       }
