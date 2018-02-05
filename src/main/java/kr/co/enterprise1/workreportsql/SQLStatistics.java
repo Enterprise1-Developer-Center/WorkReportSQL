@@ -369,7 +369,6 @@ public class SQLStatistics {
     //SELECT * FROM HOLIDAY WHERE WORK_YMD LIKE '2018%' ORDER BY WORK_YMD ASC;
     final String query =
         "SELECT * FROM HOLIDAY WHERE WORK_YMD LIKE '" + year + "%' ORDER BY WORK_YMD ASC";
-    Log.d("query = " + query);
     final PreparedStatement preparedStatement =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
