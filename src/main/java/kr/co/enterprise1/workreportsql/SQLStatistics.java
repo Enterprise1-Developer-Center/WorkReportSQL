@@ -366,9 +366,10 @@ public class SQLStatistics {
       throws SQLException {
     Log.d("year = " + year);
     final Connection con = getSQLConnection();
-    //SELECT * FROM HOLIDAY WHERE WORK_YMD LIKE '2018%' ORDER BY WORK_YMD ASC;
-    final String query =
-        "SELECT * FROM HOLIDAY WHERE WORK_YMD LIKE '" + year + "%' ORDER BY WORK_YMD ASC";
+    String query =
+        "SELECT H.WORK_YMD, H.HOLIDAY_NM, HOLIDAY_GBN FROM HOLIDAY H WHERE H.WORK_YMD LIKE '"
+            + year
+            + "%' AND H.HOLIDAY_GBN = 'Y' ORDER BY H.WORK_YMD ASC";
     final PreparedStatement preparedStatement =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
@@ -431,6 +432,7 @@ public class SQLStatistics {
         + "         HOLIDAY_NM = ?\n"
         + "       , UPD_ID = 'TEST4'\n"
         + "       , UPD_DTM = SYSDATE\n"
+        + "       , HOLIDAY_GBN = ?\n"
         + " WHEN NOT MATCHED THEN\n"
         + "      INSERT (\n"
         + "                 WORK_YMD\n"
@@ -439,6 +441,7 @@ public class SQLStatistics {
         + "               , UPD_DTM\n"
         + "               , CRE_ID\n"
         + "               , CRE_DTM\n"
+        + "               , HOLIDAY_GBN\n"
         + "             )\n"
         + "      VALUES (\n"
         + "                 ?\n"
@@ -447,12 +450,15 @@ public class SQLStatistics {
         + "               , SYSDATE\n"
         + "               , 'TEST4'\n"
         + "               , SYSDATE\n"
+        + "               , ?\n"
         + "              )";
 
     //1 : WORK_YMD
     //2 : HOLIDAY_NM
-    //3 : WORK_YMD
-    //4 : HOLIDAY_NM
+    //3 : "Y"
+    //4 : WORK_YMD
+    //5 : HOLIDAY_NM
+    //6 : "Y"
 
     Connection connection = getSQLConnection();
     PreparedStatement preparedStatement =
@@ -462,8 +468,10 @@ public class SQLStatistics {
     try {
       preparedStatement.setString(1, date);
       preparedStatement.setString(2, name);
-      preparedStatement.setString(3, date);
-      preparedStatement.setString(4, name);
+      preparedStatement.setString(3, "Y");
+      preparedStatement.setString(4, date);
+      preparedStatement.setString(5, name);
+      preparedStatement.setString(6, "Y");
 
       ResultSet resultSet = preparedStatement.executeQuery();
       result.put("result", Constants.RESULT_SUCCESS);
@@ -504,6 +512,7 @@ public class SQLStatistics {
         + "         HOLIDAY_NM = ?\n"
         + "       , UPD_ID = 'TEST4'\n"
         + "       , UPD_DTM = SYSDATE\n"
+        + "       , HOLIDAY_GBN = ?\n"
         + " WHEN NOT MATCHED THEN\n"
         + "      INSERT (\n"
         + "                 WORK_YMD\n"
@@ -512,6 +521,7 @@ public class SQLStatistics {
         + "               , UPD_DTM\n"
         + "               , CRE_ID\n"
         + "               , CRE_DTM\n"
+        + "               , HOLIDAY_GBN\n"
         + "             )\n"
         + "      VALUES (\n"
         + "                 ?\n"
@@ -520,12 +530,15 @@ public class SQLStatistics {
         + "               , SYSDATE\n"
         + "               , 'TEST4'\n"
         + "               , SYSDATE\n"
+        + "               , ?\n"
         + "              )";
 
     //1 : WORK_YMD
     //2 : HOLIDAY_NM
-    //3 : WORK_YMD
-    //4 : HOLIDAY_NM
+    //3 : "Y"
+    //4 : WORK_YMD
+    //5 : HOLIDAY_NM
+    //6 : "Y"
 
     Connection connection = getSQLConnection();
     PreparedStatement preparedStatement =
@@ -535,8 +548,10 @@ public class SQLStatistics {
     try {
       preparedStatement.setString(1, date);
       preparedStatement.setString(2, name);
-      preparedStatement.setString(3, date);
-      preparedStatement.setString(4, name);
+      preparedStatement.setString(3, "Y");
+      preparedStatement.setString(4, date);
+      preparedStatement.setString(5, name);
+      preparedStatement.setString(6, "Y");
 
       ResultSet resultSet = preparedStatement.executeQuery();
       result.put("result", Constants.RESULT_SUCCESS);
@@ -560,23 +575,24 @@ public class SQLStatistics {
   @Produces("application/json")
   @Path("/delHoliday")
   public Response delHoliday(@FormParam("WORK_YMD") String date) throws SQLException {
+    Log.d("delHoliday(" + date + ")");
     Connection connection = getSQLConnection();
-    String query = "DELETE FROM HOLIDAY WHERE WORK_YMD= ?";
+    String query = "DELETE FROM HOLIDAY WHERE WORK_YMD = ?";
 
     PreparedStatement preparedStatement =
         connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY);
-
     JSONObject object = new JSONObject();
 
     try {
       preparedStatement.setString(1, date);
-
-      ResultSet resultSet = preparedStatement.executeQuery();
+      preparedStatement.execute();
+      //Log.d("delHoliday execute = " + execute);
       object.put("result", Constants.RESULT_SUCCESS);
       object.put("msg", "휴일이 삭제되었습니다.");
       return Response.ok(object).build();
     } catch (Exception e) {
+      Log.d(e.getMessage(), e);
       object.put("result", Constants.RESULT_FAILURE);
       object.put("msg", "" + e.getMessage());
       return Response.ok(object).build();
