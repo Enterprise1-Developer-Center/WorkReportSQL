@@ -606,22 +606,6 @@ public class SQLStatistics {
       items.add(item);
     }
 
-    /*
-    items.add(new JSONObject().put("name", "신정"));
-    items.add(new JSONObject().put("name", "설날"));
-    items.add(new JSONObject().put("name", "삼일절"));
-    items.add(new JSONObject().put("name", "어린이날"));
-    items.add(new JSONObject().put("name", "부처님오신날"));
-    items.add(new JSONObject().put("name", "현충일"));
-    items.add(new JSONObject().put("name", "광복절"));
-    items.add(new JSONObject().put("name", "추석"));
-    items.add(new JSONObject().put("name", "개천절"));
-    items.add(new JSONObject().put("name", "한글날"));
-    items.add(new JSONObject().put("name", "크리스마스"));
-    items.add(new JSONObject().put("name", "창립기념일"));
-    items.add(new JSONObject().put("name", "선거"));
-    items.add(new JSONObject().put("name", "기타(휴일 및 법정휴일)"));
-    */
     try {
 
       object.put("result", Constants.RESULT_SUCCESS);
