@@ -364,19 +364,18 @@ public class SQLStatistics {
   @Path("/getHolidays")
   public Response getHolidays(@QueryParam("YEAR") int year)
       throws SQLException {
-    Log.d("year = " + year);
+    Log.d("getHolidays(" + year + ")");
     final Connection con = getSQLConnection();
     String query =
-        "SELECT H.WORK_YMD, H.HOLIDAY_NM, HOLIDAY_GBN FROM HOLIDAY H WHERE H.WORK_YMD LIKE '"
-            + year
-            + "%' AND H.HOLIDAY_GBN = 'Y' ORDER BY H.WORK_YMD ASC";
+        "SELECT H.WORK_YMD, H.HOLIDAY_NM, HOLIDAY_GBN FROM HOLIDAY H WHERE H.WORK_YMD LIKE ? AND H.HOLIDAY_GBN = ? ORDER BY H.WORK_YMD ASC";
     final PreparedStatement preparedStatement =
         con.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     JSONObject object = new JSONObject();
 
     try {
-      //preparedStatement.setString(1, String.valueOf(year));
+      preparedStatement.setString(1, String.valueOf(year) + "%");
+      preparedStatement.setString(2, "Y");
       ResultSet data = preparedStatement.executeQuery();
       JSONArray items = new JSONArray();
 
@@ -532,7 +531,7 @@ public class SQLStatistics {
         + "               , SYSDATE\n"
         + "               , ?\n"
         + "              )";
-
+    Log.d("editHoliday query = " + query);
     //1 : WORK_YMD
     //2 : HOLIDAY_NM
     //3 : "Y"
@@ -554,8 +553,9 @@ public class SQLStatistics {
       preparedStatement.setString(6, "Y");
 
       ResultSet resultSet = preparedStatement.executeQuery();
+
       result.put("result", Constants.RESULT_SUCCESS);
-      result.put("msg", "휴일이 수정되었습니다.");
+      result.put("msg", "휴일이 추가되었습니다.");
       return Response.ok(result).build();
     } catch (Exception e) {
       //Trying to create a user that already exists
@@ -578,7 +578,7 @@ public class SQLStatistics {
     Log.d("delHoliday(" + date + ")");
     Connection connection = getSQLConnection();
     String query = "DELETE FROM HOLIDAY WHERE WORK_YMD = ?";
-
+    Log.d("query = " + query);
     PreparedStatement preparedStatement =
         connection.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY);
@@ -587,6 +587,7 @@ public class SQLStatistics {
     try {
       preparedStatement.setString(1, date);
       preparedStatement.execute();
+      Log.d("delHoliday execute");
       //Log.d("delHoliday execute = " + execute);
       object.put("result", Constants.RESULT_SUCCESS);
       object.put("msg", "휴일이 삭제되었습니다.");
@@ -600,6 +601,7 @@ public class SQLStatistics {
       //Close resources in all cases
       preparedStatement.close();
       connection.close();
+      Log.d("delHoliday closed");
     }
   }
 
