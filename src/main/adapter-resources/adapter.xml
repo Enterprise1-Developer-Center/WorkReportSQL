@@ -15,7 +15,7 @@
 
 	<JAXRSApplicationClass>kr.co.enterprise1.workreportsql.WorkReportSQLApplication</JAXRSApplicationClass>
 
-	<property name="DB_url" displayName="Database URL" defaultValue="jdbc:oracle:thin:@192.168.1.75:1521:morcl"  />
+	<property name="DB_url" displayName="Database URL" defaultValue="jdbc:oracle:thin:@211.219.71.228:1521:morcl"  />
 	<property name="DB_username" displayName="Database username" defaultValue="mobile"  />
 	<property name="DB_password" displayName="Database password" defaultValue="mobile"  />
 </mfp:adapter>
